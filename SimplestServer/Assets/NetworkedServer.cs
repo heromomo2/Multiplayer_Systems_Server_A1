@@ -14,6 +14,8 @@ public class NetworkedServer : MonoBehaviour
     int hostID;
     int socketPort = 5491;
 
+    LinkedList<PlayerAccount> playerAccounts;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -23,7 +25,9 @@ public class NetworkedServer : MonoBehaviour
         unreliableChannelID = config.AddChannel(QosType.Unreliable);
         HostTopology topology = new HostTopology(config, maxConnections);
         hostID = NetworkTransport.AddHost(topology, socketPort, null);
-        
+
+        playerAccounts = new LinkedList<PlayerAccount>();
+        // read in player accounts from wherever
     }
 
     // Update is called once per frame
@@ -37,6 +41,8 @@ public class NetworkedServer : MonoBehaviour
         int bufferSize = 1024;
         int dataSize;
         byte error = 0;
+
+        
 
         NetworkEventType recNetworkEvent = NetworkTransport.Receive(out recHostID, out recConnectionID, out recChannelID, recBuffer, bufferSize, out dataSize, out error);
 
@@ -68,6 +74,82 @@ public class NetworkedServer : MonoBehaviour
     private void ProcessRecievedMsg(string msg, int id)
     {
         Debug.Log("msg recieved = " + msg + ".  connection id = " + id);
+
+        string[] csv = msg.Split(',');
+
+        int signifier = int.Parse(csv[0]);
+
+        if (signifier == ClientToServerSignifiers.CreateAcount)
+        {
+            Debug.Log("create an Account");
+            // check if player  account name already exists,
+
+            string n = csv[1];
+            string p = csv[2];
+            bool nameInUse = false;
+
+            foreach (PlayerAccount pa in playerAccounts) 
+            {
+                if (pa.name == n)
+                {
+                    nameInUse = true;
+                    break;
+                }
+            }
+
+            if (nameInUse)
+            {
+                SendMessageToClient(ServerToClientSignifiers.CreateAcountFailed + "",id);
+            }
+            else
+            {
+                // Create  new account, add to list
+
+                PlayerAccount newPlayAccount = new PlayerAccount(n, p);
+                playerAccounts.AddLast(newPlayAccount);
+                SendMessageToClient(ServerToClientSignifiers.CreateAcountComplete + "", id);
+
+                // save list to HD
+            }
+            // If not, 
+            // send to success/ failure
+        }
+        else if (signifier == ClientToServerSignifiers.Login)
+        {
+            Debug.Log("Login to an account");
+            // check if player  account name already exists,
+            // send to success/ failure
+        }
+
+    }
+    public class PlayerAccount 
+    {
+        public string name, password;
+        
+       public  PlayerAccount (string Name, string PassWord) 
+        {
+            name = Name;
+            password = PassWord;
+        }
     }
 
+    public class ClientToServerSignifiers
+    {
+        public const int CreateAcount = 1;
+        public const int Login = 2;
+    }
+
+    public class ServerToClientSignifiers
+    {
+
+        public const int LoginComplete = 1;
+
+        public const int LoginFailed = 2;
+
+        public const int CreateAcountComplete = 3;
+
+        public const int CreateAcountFailed = 3;
+
+
+    }
 }
