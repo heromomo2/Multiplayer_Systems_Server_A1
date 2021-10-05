@@ -28,6 +28,7 @@ public class NetworkedServer : MonoBehaviour
 
         playerAccounts = new LinkedList<PlayerAccount>();
         // read in player accounts from wherever
+        LoadPlayerManagementFile();
     }
 
     // Update is called once per frame
@@ -100,6 +101,7 @@ public class NetworkedServer : MonoBehaviour
             if (nameInUse)
             {
                 SendMessageToClient(ServerToClientSignifiers.CreateAcountFailed + "",id);
+                Debug.Log("This Account already exist");
             }
             else
             {
@@ -110,6 +112,8 @@ public class NetworkedServer : MonoBehaviour
                 SendMessageToClient(ServerToClientSignifiers.CreateAcountComplete + "", id);
 
                 // save list to HD
+                SavePlayerManagementFile();
+                Debug.Log("This Account has created and add");
             }
             // If not, 
             // send to success/ failure
@@ -118,10 +122,86 @@ public class NetworkedServer : MonoBehaviour
         {
             Debug.Log("Login to an account");
             // check if player  account name already exists,
+            string n = csv[1];
+            string p = csv[2];
+            bool nameInUse = false;
+            bool Ispassward = false;
+
+            foreach (PlayerAccount pa in playerAccounts)
+            {
+                if (pa.name == n)
+                {
+                    nameInUse = true;
+                    break;
+                }
+            }
+
+            if (nameInUse) 
+            {
+                foreach (PlayerAccount pa in playerAccounts)
+                {
+                    if (pa.name == n && pa.password == p)
+                    {
+                        Ispassward = true;
+                        break;
+                    }
+                }
+                if (Ispassward) 
+                {
+                    Debug.Log("Password was right. You are in your Account");
+                    SendMessageToClient(ServerToClientSignifiers.LoginComplete + "", id);
+                }
+            }
+            else
+            {
+                Debug.Log("This Account doesn't exist");
+            }
+
             // send to success/ failure
+
         }
 
     }
+
+
+    public void SavePlayerManagementFile() 
+    {
+        StreamWriter sw = new StreamWriter(Application.dataPath + Path.DirectorySeparatorChar + "PlayerManagementFile.txt");
+        foreach (PlayerAccount pa in playerAccounts)
+        {
+            sw.WriteLine(PlayerSignifiers.PlayerIdSinifier + "," + pa.name + "," + pa.password);
+        }
+        sw.Close();
+    }
+
+    public void LoadPlayerManagementFile()
+    {
+        if (File.Exists(Application.dataPath + Path.DirectorySeparatorChar + "PlayerManagementFile.txt"))
+        {
+            StreamReader sr = new StreamReader(Application.dataPath + Path.DirectorySeparatorChar + "PlayerManagementFile.txt");
+            string line;
+            while ((line = sr.ReadLine()) != null)
+            {
+                string[] csv = line.Split(',');
+
+                int signifier = int.Parse(csv[0]);
+                if (signifier == PlayerSignifiers.PlayerIdSinifier)
+                {
+
+                    playerAccounts.AddLast(new PlayerAccount ( csv[1], csv[2] ) );
+                }
+            }
+        }
+    }
+
+
+
+
+    public class PlayerSignifiers
+    {
+        public const int PlayerIdSinifier = 1;
+    }
+
     public class PlayerAccount 
     {
         public string name, password;
@@ -144,12 +224,13 @@ public class NetworkedServer : MonoBehaviour
 
         public const int LoginComplete = 1;
 
-        public const int LoginFailed = 2;
+        public const int LoginFailedAccount = 2;
 
-        public const int CreateAcountComplete = 3;
+        public const int LoginFailedPassword = 3;
 
-        public const int CreateAcountFailed = 3;
+        public const int CreateAcountComplete = 4;
 
+        public const int CreateAcountFailed = 5;
 
     }
 }
