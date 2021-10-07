@@ -101,7 +101,7 @@ public class NetworkedServer : MonoBehaviour
             if (nameInUse)
             {
                 SendMessageToClient(ServerToClientSignifiers.CreateAcountFailed + "",id);
-                Debug.Log("This Account already exist");
+                Debug.LogWarning("This Account already exist");
             }
             else
             {
@@ -113,7 +113,7 @@ public class NetworkedServer : MonoBehaviour
 
                 // save list to HD
                 SavePlayerManagementFile();
-                Debug.Log("This Account has created and add");
+                Debug.LogWarning("This Account has created and add");
             }
             // If not, 
             // send to success/ failure
@@ -148,13 +148,18 @@ public class NetworkedServer : MonoBehaviour
                 }
                 if (Ispassward) 
                 {
-                    Debug.Log("Password was right. You are in your Account");
+                    Debug.LogWarning("Password was right. You are in your Account");
                     SendMessageToClient(ServerToClientSignifiers.LoginComplete + "", id);
+                }
+                else 
+                {
+                    SendMessageToClient(ServerToClientSignifiers.LoginFailedPassword + "", id);
                 }
             }
             else
             {
-                Debug.Log("This Account doesn't exist");
+                Debug.LogWarning("This Account doesn't exist");
+                SendMessageToClient(ServerToClientSignifiers.LoginFailedAccount + "", id);
             }
 
             // send to success/ failure
