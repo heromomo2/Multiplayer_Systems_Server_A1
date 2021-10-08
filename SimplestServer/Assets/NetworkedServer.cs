@@ -221,7 +221,10 @@ public class NetworkedServer : MonoBehaviour
     public class ClientToServerSignifiers
     {
         public const int CreateAcount = 1;
+
         public const int Login = 2;
+
+        public const int SendChatMsg = 3;
     }
 
     public class ServerToClientSignifiers
@@ -237,5 +240,7 @@ public class NetworkedServer : MonoBehaviour
 
         public const int CreateAcountFailed = 5;
 
+        public const int ChatView = 6;
     }
+    
 }
