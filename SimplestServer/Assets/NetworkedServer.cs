@@ -89,7 +89,7 @@ public class NetworkedServer : MonoBehaviour
             string p = csv[2];
             bool nameInUse = false;
 
-            foreach (PlayerAccount pa in playerAccounts) 
+            foreach (PlayerAccount pa in playerAccounts)
             {
                 if (pa.name == n)
                 {
@@ -100,7 +100,7 @@ public class NetworkedServer : MonoBehaviour
 
             if (nameInUse)
             {
-                SendMessageToClient(ServerToClientSignifiers.CreateAcountFailed + "",id);
+                SendMessageToClient(ServerToClientSignifiers.CreateAcountFailed + "", id);
                 Debug.LogWarning("This Account already exist");
             }
             else
@@ -136,7 +136,7 @@ public class NetworkedServer : MonoBehaviour
                 }
             }
 
-            if (nameInUse) 
+            if (nameInUse)
             {
                 foreach (PlayerAccount pa in playerAccounts)
                 {
@@ -146,12 +146,12 @@ public class NetworkedServer : MonoBehaviour
                         break;
                     }
                 }
-                if (Ispassward) 
+                if (Ispassward)
                 {
                     Debug.LogWarning("Password was right. You are in your Account");
                     SendMessageToClient(ServerToClientSignifiers.LoginComplete + "", id);
                 }
-                else 
+                else
                 {
                     SendMessageToClient(ServerToClientSignifiers.LoginFailedPassword + "", id);
                 }
@@ -164,6 +164,11 @@ public class NetworkedServer : MonoBehaviour
 
             // send to success/ failure
 
+        }
+        else if (signifier == ClientToServerSignifiers.SendChatMsg) 
+        {
+            string Msg = csv[1];
+            SendMessageToClient(ServerToClientSignifiers.ChatView + "fromTheServer: "+ Msg, id);
         }
 
     }
