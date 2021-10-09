@@ -168,7 +168,7 @@ public class NetworkedServer : MonoBehaviour
         else if (signifier == ClientToServerSignifiers.SendChatMsg) 
         {
             string Msg = csv[1];
-            SendMessageToClient(ServerToClientSignifiers.ChatView + "fromTheServer: "+ Msg, id);
+            SendMessageToClient(ServerToClientSignifiers.ChatView + ",fromTheServer: "+ Msg, id);
         }
 
     }
