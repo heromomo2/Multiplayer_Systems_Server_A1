@@ -14,6 +14,7 @@ public class NetworkedServer : MonoBehaviour
     int hostID;
     int socketPort = 5491;
 
+    LinkedList<Clinet> ClientList;
     LinkedList<PlayerAccount> playerAccounts;
 
     // Start is called before the first frame update
@@ -26,6 +27,8 @@ public class NetworkedServer : MonoBehaviour
         HostTopology topology = new HostTopology(config, maxConnections);
         hostID = NetworkTransport.AddHost(topology, socketPort, null);
 
+
+        ClientList = new LinkedList<Clinet>();
         playerAccounts = new LinkedList<PlayerAccount>();
         // read in player accounts from wherever
         LoadPlayerManagementFile();
@@ -53,6 +56,9 @@ public class NetworkedServer : MonoBehaviour
                 break;
             case NetworkEventType.ConnectEvent:
                 Debug.Log("Connection, " + recConnectionID);
+
+                ClientList.AddLast(new Clinet(recConnectionID));
+
                 break;
             case NetworkEventType.DataEvent:
                 string msg = Encoding.Unicode.GetString(recBuffer, 0, dataSize);
@@ -60,6 +66,20 @@ public class NetworkedServer : MonoBehaviour
                 break;
             case NetworkEventType.DisconnectEvent:
                 Debug.Log("Disconnection, " + recConnectionID);
+
+                Clinet TempClient = new Clinet(89);
+
+                foreach(Clinet C in ClientList)
+                {
+                    if(recConnectionID == C.ConnectionID) 
+                    {
+                        TempClient = C;
+                        break;
+                    }
+                }
+
+                ClientList.Remove(TempClient);
+                Debug.LogWarning("TempClient : "+ TempClient.ConnectionID.ToString());
                 break;
         }
 
@@ -149,7 +169,7 @@ public class NetworkedServer : MonoBehaviour
                 if (Ispassward)
                 {
                     Debug.LogWarning("Password was right. You are in your Account");
-                    SendMessageToClient(ServerToClientSignifiers.LoginComplete + "", id);
+                    SendMessageToClient(ServerToClientSignifiers.LoginComplete + ","+n , id);
                 }
                 else
                 {
@@ -168,7 +188,11 @@ public class NetworkedServer : MonoBehaviour
         else if (signifier == ClientToServerSignifiers.SendChatMsg) 
         {
             string Msg = csv[1];
-            SendMessageToClient(ServerToClientSignifiers.ChatView + ",fromTheServer: "+ Msg, id);
+            foreach (Clinet C in ClientList)
+            {
+                
+                SendMessageToClient(ServerToClientSignifiers.ChatView + ", " + Msg,C.ConnectionID);
+            }
         }
 
     }
@@ -206,7 +230,20 @@ public class NetworkedServer : MonoBehaviour
 
 
 
+    
+    public class Clinet
+    {
+        public int ConnectionID ;
 
+        public Clinet( int conID)
+        {
+            ConnectionID = conID;
+        }
+    }
+
+    /// <summary>
+    /// PlayerSignifiers
+    /// </summary>
     public class PlayerSignifiers
     {
         public const int PlayerIdSinifier = 1;
