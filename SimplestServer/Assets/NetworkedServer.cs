@@ -16,6 +16,7 @@ public class NetworkedServer : MonoBehaviour
 
     LinkedList<Clinet> ClientList;
     LinkedList<PlayerAccount> playerAccounts;
+    LinkedList<PlayerAccount> ListOfPlayerConnected;
 
     // Start is called before the first frame update
     void Start()
@@ -28,7 +29,8 @@ public class NetworkedServer : MonoBehaviour
         hostID = NetworkTransport.AddHost(topology, socketPort, null);
 
 
-        ClientList = new LinkedList<Clinet>();
+        // ClientList = new LinkedList<Clinet>();
+        ListOfPlayerConnected = new LinkedList<PlayerAccount>();
         playerAccounts = new LinkedList<PlayerAccount>();
         // read in player accounts from wherever
         LoadPlayerManagementFile();
@@ -57,7 +59,7 @@ public class NetworkedServer : MonoBehaviour
             case NetworkEventType.ConnectEvent:
                 Debug.Log("Connection, " + recConnectionID);
 
-                ClientList.AddLast(new Clinet(recConnectionID));
+               // ClientList.AddLast(new Clinet(recConnectionID));
 
                 break;
             case NetworkEventType.DataEvent:
@@ -66,20 +68,7 @@ public class NetworkedServer : MonoBehaviour
                 break;
             case NetworkEventType.DisconnectEvent:
                 Debug.Log("Disconnection, " + recConnectionID);
-
-                Clinet TempClient = new Clinet(89);
-
-                foreach(Clinet C in ClientList)
-                {
-                    if(recConnectionID == C.ConnectionID) 
-                    {
-                        TempClient = C;
-                        break;
-                    }
-                }
-
-                ClientList.Remove(TempClient);
-                Debug.LogWarning("TempClient : "+ TempClient.ConnectionID.ToString());
+                PlayerDisconnect(recConnectionID);
                 break;
         }
 
@@ -102,97 +91,18 @@ public class NetworkedServer : MonoBehaviour
 
         if (signifier == ClientToServerSignifiers.CreateAcount)
         {
-            Debug.Log("create an Account");
-            // check if player  account name already exists,
-
-            string n = csv[1];
-            string p = csv[2];
-            bool nameInUse = false;
-
-            foreach (PlayerAccount pa in playerAccounts)
-            {
-                if (pa.name == n)
-                {
-                    nameInUse = true;
-                    break;
-                }
-            }
-
-            if (nameInUse)
-            {
-                SendMessageToClient(ServerToClientSignifiers.CreateAcountFailed + "", id);
-                Debug.LogWarning("This Account already exist");
-            }
-            else
-            {
-                // Create  new account, add to list
-
-                PlayerAccount newPlayAccount = new PlayerAccount(n, p);
-                playerAccounts.AddLast(newPlayAccount);
-                SendMessageToClient(ServerToClientSignifiers.CreateAcountComplete + "", id);
-
-                // save list to HD
-                SavePlayerManagementFile();
-                Debug.LogWarning("This Account has created and add");
-            }
-            // If not, 
-            // send to success/ failure
+            CreatedAccount(csv[1], csv[2], id);
         }
         else if (signifier == ClientToServerSignifiers.Login)
         {
-            Debug.Log("Login to an account");
-            // check if player  account name already exists,
-            string n = csv[1];
-            string p = csv[2];
-            bool nameInUse = false;
-            bool Ispassward = false;
 
-            foreach (PlayerAccount pa in playerAccounts)
-            {
-                if (pa.name == n)
-                {
-                    nameInUse = true;
-                    break;
-                }
-            }
-
-            if (nameInUse)
-            {
-                foreach (PlayerAccount pa in playerAccounts)
-                {
-                    if (pa.name == n && pa.password == p)
-                    {
-                        Ispassward = true;
-                        break;
-                    }
-                }
-                if (Ispassward)
-                {
-                    Debug.LogWarning("Password was right. You are in your Account");
-                    SendMessageToClient(ServerToClientSignifiers.LoginComplete + ","+n , id);
-                }
-                else
-                {
-                    SendMessageToClient(ServerToClientSignifiers.LoginFailedPassword + "", id);
-                }
-            }
-            else
-            {
-                Debug.LogWarning("This Account doesn't exist");
-                SendMessageToClient(ServerToClientSignifiers.LoginFailedAccount + "", id);
-            }
-
-            // send to success/ failure
-
+            Login(csv[1], csv[2], id);
         }
         else if (signifier == ClientToServerSignifiers.SendChatMsg) 
         {
             string Msg = csv[1];
-            foreach (Clinet C in ClientList)
-            {
-                
-                SendMessageToClient(ServerToClientSignifiers.ChatView + ", " + Msg,C.ConnectionID);
-            }
+            
+            SendToAllClient( Msg);
         }
 
     }
@@ -203,7 +113,7 @@ public class NetworkedServer : MonoBehaviour
         StreamWriter sw = new StreamWriter(Application.dataPath + Path.DirectorySeparatorChar + "PlayerManagementFile.txt");
         foreach (PlayerAccount pa in playerAccounts)
         {
-            sw.WriteLine(PlayerSignifiers.PlayerIdSinifier + "," + pa.name + "," + pa.password);
+            sw.WriteLine(PlayerAccount.PlayerIdSinifier + "," + pa.name + "," + pa.password);
         }
         sw.Close();
     }
@@ -219,7 +129,7 @@ public class NetworkedServer : MonoBehaviour
                 string[] csv = line.Split(',');
 
                 int signifier = int.Parse(csv[0]);
-                if (signifier == PlayerSignifiers.PlayerIdSinifier)
+                if (signifier == PlayerAccount.PlayerIdSinifier)
                 {
 
                     playerAccounts.AddLast(new PlayerAccount ( csv[1], csv[2] ) );
@@ -229,11 +139,120 @@ public class NetworkedServer : MonoBehaviour
     }
 
 
+    public void CreatedAccount(string userName, string Password, int id) 
+    {
+        Debug.Log("create an Account");
+        // check if player  account name already exists,
 
-    
+        bool nameInUse = false;
+
+        foreach (PlayerAccount pa in playerAccounts)
+        {
+            if (pa.name == userName)
+            {
+                nameInUse = true;
+                break;
+            }
+        }
+
+        if (nameInUse)
+        {
+            SendMessageToClient(ServerToClientSignifiers.CreateAcountFailed + "", id);
+            Debug.LogWarning("This Account already exist");
+        }
+        else
+        {
+            // Create  new account, add to list
+
+            PlayerAccount newPlayAccount = new PlayerAccount(userName, Password);
+            playerAccounts.AddLast(newPlayAccount);
+            SendMessageToClient(ServerToClientSignifiers.CreateAcountComplete + "", id);
+
+            // save list to HD
+            SavePlayerManagementFile();
+            Debug.LogWarning("This Account has created and add");
+        }
+        // If not, 
+        // send to success/ failure
+    }
+
+    public void Login (string userName, string Password, int id)
+    {
+        Debug.Log("Login to an account");
+        // check if player  account name already exists,
+        
+        bool nameInUse = false;
+        bool Ispassward = false;
+
+        foreach (PlayerAccount pa in playerAccounts)
+        {
+            if (pa.name == userName)
+            {
+                nameInUse = true;
+                break;
+            }
+        }
+
+        if (nameInUse)
+        {
+            foreach (PlayerAccount pa in playerAccounts)
+            {
+                if (pa.name == userName && pa.password == Password)
+                {
+                    Ispassward = true;
+                    break;
+                }
+            }
+
+            if (Ispassward)
+            {
+                Debug.LogWarning("Password was right. You are in your Account");
+                SendMessageToClient(ServerToClientSignifiers.LoginComplete + "," + userName, id);
+                ListOfPlayerConnected.AddLast(new PlayerAccount(userName,Password,id));
+            }
+            else
+            {
+                SendMessageToClient(ServerToClientSignifiers.LoginFailedPassword + "", id);
+                Debug.LogWarning("Password was wrong");
+            }
+        }
+        else
+        {
+            Debug.LogWarning("This Account doesn't exist");
+            SendMessageToClient(ServerToClientSignifiers.LoginFailedAccount + "", id);
+        }
+
+        // send to success/ failure
+    }
+
+    public void SendToAllClient(string Msg) 
+    {
+        foreach ( PlayerAccount pa in ListOfPlayerConnected)
+        {
+            SendMessageToClient(ServerToClientSignifiers.ChatView + ", " + Msg, pa.ConnectionID);
+        }
+    }
+
+    public void PlayerDisconnect(int recConnectionID)
+    {
+       PlayerAccount TempPlayerAccount = new PlayerAccount ();
+
+        foreach (PlayerAccount pa in ListOfPlayerConnected)
+        {
+            if (recConnectionID == pa.ConnectionID)
+            {
+                TempPlayerAccount = pa;
+                break;
+            }
+        }
+
+        ListOfPlayerConnected.Remove(TempPlayerAccount);
+        Debug.LogWarning("TempPlayerAccount : " + TempPlayerAccount.ConnectionID.ToString());
+    }
+
     public class Clinet
     {
-        public int ConnectionID ;
+        public int ConnectionID;
 
         public Clinet( int conID)
         {
@@ -251,12 +270,25 @@ public class NetworkedServer : MonoBehaviour
 
     public class PlayerAccount 
     {
+        public const int PlayerIdSinifier = 1;
         public string name, password;
-        
-       public  PlayerAccount (string Name, string PassWord) 
+        public int ConnectionID;
+
+        public  PlayerAccount (string Name, string PassWord) 
         {
             name = Name;
             password = PassWord;
+  
+        }
+        public PlayerAccount(string Name, string PassWord,int ConId )
+        {
+            name = Name;
+            password = PassWord;
+            ConnectionID = ConId;
+        }
+        public PlayerAccount()
+        {
+        
         }
     }
 
