@@ -14,7 +14,7 @@ public class NetworkedServer : MonoBehaviour
     int hostID;
     int socketPort = 5491;
 
-    LinkedList<Clinet> ClientList;
+    //LinkedList<Clinet> ClientList;
     LinkedList<PlayerAccount> playerAccounts;
     LinkedList<PlayerAccount> ListOfPlayerConnected;
 
@@ -68,7 +68,10 @@ public class NetworkedServer : MonoBehaviour
                 break;
             case NetworkEventType.DisconnectEvent:
                 Debug.Log("Disconnection, " + recConnectionID);
+
                 PlayerDisconnect(recConnectionID);
+                SendClearListofPlayersToClient();
+                SendToListofPlayersToClient();
                 break;
         }
 
@@ -209,6 +212,8 @@ public class NetworkedServer : MonoBehaviour
                 Debug.LogWarning("Password was right. You are in your Account");
                 SendMessageToClient(ServerToClientSignifiers.LoginComplete + "," + userName, id);
                 ListOfPlayerConnected.AddLast(new PlayerAccount(userName,Password,id));
+                SendClearListofPlayersToClient();
+                SendToListofPlayersToClient();
             }
             else
             {
@@ -233,6 +238,27 @@ public class NetworkedServer : MonoBehaviour
         }
     }
 
+    public void SendToSpecificClient() 
+    { 
+
+    }
+    public void SendToListofPlayersToClient()
+    {
+        foreach (PlayerAccount pa in ListOfPlayerConnected)
+        {
+            foreach (PlayerAccount C in ListOfPlayerConnected) 
+            {
+                SendMessageToClient(ServerToClientSignifiers.ReceiveListOFPlayerInChat + "," + pa.name, C.ConnectionID);
+            }
+        }
+    }
+    public void SendClearListofPlayersToClient()
+    {
+        foreach (PlayerAccount pa in ListOfPlayerConnected)
+        {
+            SendMessageToClient(ServerToClientSignifiers.ReceiveClearListOFPlayerInChat + "" , pa.ConnectionID);
+        }
+    }
     public void PlayerDisconnect(int recConnectionID)
     {
        PlayerAccount TempPlayerAccount = new PlayerAccount ();
@@ -250,23 +276,23 @@ public class NetworkedServer : MonoBehaviour
         Debug.LogWarning("TempPlayerAccount : " + TempPlayerAccount.ConnectionID.ToString());
     }
 
-    public class Clinet
-    {
-        public int ConnectionID;
+    //public class Clinet
+    //{
+    //    public int ConnectionID;
 
-        public Clinet( int conID)
-        {
-            ConnectionID = conID;
-        }
-    }
+    //    public Clinet( int conID)
+    //    {
+    //        ConnectionID = conID;
+    //    }
+    //}
 
     /// <summary>
     /// PlayerSignifiers
     /// </summary>
-    public class PlayerSignifiers
-    {
-        public const int PlayerIdSinifier = 1;
-    }
+    //public class PlayerSignifiers
+    //{
+    //    public const int PlayerIdSinifier = 1;
+    //}
 
     public class PlayerAccount 
     {
@@ -298,7 +324,9 @@ public class NetworkedServer : MonoBehaviour
 
         public const int Login = 2;
 
-        public const int SendChatMsg = 3;
+        public const int SendChatMsg = 3; // send a globle chat message
+
+        public const int SendChatPrivateMsg = 4;// send a chat private msg
     }
 
     public class ServerToClientSignifiers
@@ -314,7 +342,14 @@ public class NetworkedServer : MonoBehaviour
 
         public const int CreateAcountFailed = 5;
 
-        public const int ChatView = 6;
+        public const int ChatView = 6; // all the receive globe chatmessage.
+
+        public const int ReceivePrivateChatMsg = 7;//  receive a private chat message.
+
+        public const int ReceiveListOFPlayerInChat = 8;// all the list of players in the chat
+
+        public const int ReceiveClearListOFPlayerInChat = 9;// all the list of players 
+
     }
     
 }
