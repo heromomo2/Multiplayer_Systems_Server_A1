@@ -160,7 +160,7 @@ public class NetworkedServer : MonoBehaviour
 
         if (nameInUse)
         {
-            SendMessageToClient(ServerToClientSignifiers.CreateAcountFailed + "", id);
+            SendMessageToClient(ServerToClientSignifiers.CreateAcountFailed + ",8", id);
             Debug.LogWarning("This Account already exist");
         }
         else
@@ -169,7 +169,7 @@ public class NetworkedServer : MonoBehaviour
 
             PlayerAccount newPlayAccount = new PlayerAccount(userName, Password);
             playerAccounts.AddLast(newPlayAccount);
-            SendMessageToClient(ServerToClientSignifiers.CreateAcountComplete + "", id);
+            SendMessageToClient(ServerToClientSignifiers.CreateAcountComplete + ",8", id);
 
             // save list to HD
             SavePlayerManagementFile();
@@ -217,14 +217,14 @@ public class NetworkedServer : MonoBehaviour
             }
             else
             {
-                SendMessageToClient(ServerToClientSignifiers.LoginFailedPassword + "", id);
+                SendMessageToClient(ServerToClientSignifiers.LoginFailedPassword + ",8", id);
                 Debug.LogWarning("Password was wrong");
             }
         }
         else
         {
             Debug.LogWarning("This Account doesn't exist");
-            SendMessageToClient(ServerToClientSignifiers.LoginFailedAccount + "", id);
+            SendMessageToClient(ServerToClientSignifiers.LoginFailedAccount + ", 8", id);
         }
 
         // send to success/ failure
@@ -234,7 +234,7 @@ public class NetworkedServer : MonoBehaviour
     {
         foreach ( PlayerAccount pa in ListOfPlayerConnected)
         {
-            SendMessageToClient(ServerToClientSignifiers.ChatView + ", " + Msg, pa.ConnectionID);
+            SendMessageToClient(ServerToClientSignifiers.ChatView + "," + Msg, pa.ConnectionID);
         }
     }
 
@@ -256,7 +256,7 @@ public class NetworkedServer : MonoBehaviour
     {
         foreach (PlayerAccount pa in ListOfPlayerConnected)
         {
-            SendMessageToClient(ServerToClientSignifiers.ReceiveClearListOFPlayerInChat + "" , pa.ConnectionID);
+            SendMessageToClient(ServerToClientSignifiers.ReceiveClearListOFPlayerInChat + ",8" , pa.ConnectionID);
         }
     }
     public void PlayerDisconnect(int recConnectionID)
