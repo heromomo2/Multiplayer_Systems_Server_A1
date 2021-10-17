@@ -107,7 +107,14 @@ public class NetworkedServer : MonoBehaviour
             
             SendToAllClient( Msg);
         }
-
+        else if (signifier == ClientToServerSignifiers.EnterTheChatRoom)
+        {
+            AddPlayerToTheChat(csv[1], id);
+        }
+        else if (signifier == ClientToServerSignifiers.Logout)
+        {
+            LogOutPlayer(id);
+        }
     }
 
 
@@ -211,9 +218,12 @@ public class NetworkedServer : MonoBehaviour
             {
                 Debug.LogWarning("Password was right. You are in your Account");
                 SendMessageToClient(ServerToClientSignifiers.LoginComplete + "," + userName, id);
-                ListOfPlayerConnected.AddLast(new PlayerAccount(userName,Password,id));
-                SendClearListofPlayersToClient();
-                SendToListofPlayersToClient();
+                ////ListOfPlayerConnected.AddLast(new PlayerAccount(userName,Password,id));
+                ////SendClearListofPlayersToClient();
+                ////SendToListofPlayersToClient();
+                ////// join chat msg
+                ////string JoinChatMsg = "< "+ userName + " > Have just join the chat.";
+                ////SendToAllClient(JoinChatMsg);
             }
             else
             {
@@ -261,19 +271,75 @@ public class NetworkedServer : MonoBehaviour
     }
     public void PlayerDisconnect(int recConnectionID)
     {
+        bool IsplayerInChat = false;
        PlayerAccount TempPlayerAccount = new PlayerAccount ();
+       
 
         foreach (PlayerAccount pa in ListOfPlayerConnected)
         {
             if (recConnectionID == pa.ConnectionID)
             {
                 TempPlayerAccount = pa;
+                IsplayerInChat = true;
                 break;
             }
         }
 
         ListOfPlayerConnected.Remove(TempPlayerAccount);
         Debug.LogWarning("TempPlayerAccount : " + TempPlayerAccount.ConnectionID.ToString());
+
+        /// 
+        if (TempPlayerAccount.name != ""&& TempPlayerAccount.name != null && IsplayerInChat)
+        {
+            string DisconnectMsg = "< " + TempPlayerAccount.name + " > Have been disconnected from the chat.";
+            SendToAllClient(DisconnectMsg);
+            return;
+        }
+    }
+
+    public void LogOutPlayer(int recConnectionID)
+    {
+        PlayerAccount TempPlayerAccount = new PlayerAccount();
+        bool IsplayerInChat = false;
+
+        foreach (PlayerAccount pa in ListOfPlayerConnected)
+        {
+            if (recConnectionID == pa.ConnectionID)
+            {
+                TempPlayerAccount = pa;
+                IsplayerInChat = true;
+                break;
+            }
+        }
+
+        ListOfPlayerConnected.Remove(TempPlayerAccount);
+        Debug.LogWarning("TempPlayerAccount : " + TempPlayerAccount.ConnectionID.ToString());
+
+        /// 
+        if (TempPlayerAccount.name != "" && TempPlayerAccount.name != null && IsplayerInChat)
+        {
+            string LogOutMsgOfChat = "< " + TempPlayerAccount.name + " > Has Logout.";
+            SendToAllClient(LogOutMsgOfChat);
+
+            LogOutMsgOfChat = ServerToClientSignifiers.LogOutComplete + ",8";
+            SendClearListofPlayersToClient();
+            SendToListofPlayersToClient();
+            SendMessageToClient(LogOutMsgOfChat, recConnectionID);
+            return;
+
+        }
+    }
+
+
+
+    public void AddPlayerToTheChat(string userName, int id)
+    {
+        ListOfPlayerConnected.AddLast(new PlayerAccount(userName,  id));
+        SendClearListofPlayersToClient();
+        SendToListofPlayersToClient();
+        // join chat msg
+        string JoinChatMsg = "< " + userName + " > Have just join the chat.";
+        SendToAllClient(JoinChatMsg);
     }
 
     //public class Clinet
@@ -294,29 +360,37 @@ public class NetworkedServer : MonoBehaviour
     //    public const int PlayerIdSinifier = 1;
     //}
 
-    public class PlayerAccount 
+    public class PlayerAccount
     {
         public const int PlayerIdSinifier = 1;
         public string name, password;
         public int ConnectionID;
 
-        public  PlayerAccount (string Name, string PassWord) 
+        public PlayerAccount(string Name, string PassWord)
         {
             name = Name;
             password = PassWord;
-  
+
         }
-        public PlayerAccount(string Name, string PassWord,int ConId )
+        public PlayerAccount(string Name, string PassWord, int ConId)
         {
             name = Name;
             password = PassWord;
             ConnectionID = ConId;
         }
+        public PlayerAccount(string Name, int ConId)
+        {
+            name = Name;
+            ConnectionID = ConId;
+        }
         public PlayerAccount()
         {
-        
+
         }
+
     }
+
+}
 
     public class ClientToServerSignifiers
     {
@@ -327,7 +401,11 @@ public class NetworkedServer : MonoBehaviour
         public const int SendChatMsg = 3; // send a globle chat message
 
         public const int SendChatPrivateMsg = 4;// send a chat private msg
-    }
+
+        public const int EnterTheChatRoom = 5; // enter the chat room
+
+        public const int Logout = 6;
+}
 
     public class ServerToClientSignifiers
     {
@@ -349,7 +427,8 @@ public class NetworkedServer : MonoBehaviour
         public const int ReceiveListOFPlayerInChat = 8;// all the list of players in the chat
 
         public const int ReceiveClearListOFPlayerInChat = 9;// all the list of players 
+        
+        public const int LogOutComplete = 10;
 
-    }
-    
 }
+    
