@@ -14,7 +14,7 @@ public class NetworkedServer : MonoBehaviour
     int hostID;
     int socketPort = 5491;
 
-    //LinkedList<Clinet> ClientList;
+    LinkedList<GameRoom> GameRoomList;
     LinkedList<PlayerAccount> playerAccounts;
     LinkedList<PlayerAccount> ListOfPlayerConnected;
 
@@ -115,6 +115,10 @@ public class NetworkedServer : MonoBehaviour
         {
             LogOutPlayer(id);
         }
+        else if (signifier == ClientToServerSignifiers.CreateGameRoom)
+        {
+            LogOutPlayer(id);
+        }
     }
 
 
@@ -186,6 +190,7 @@ public class NetworkedServer : MonoBehaviour
         // send to success/ failure
     }
 
+
     public void Login (string userName, string Password, int id)
     {
         Debug.Log("Login to an account");
@@ -218,12 +223,7 @@ public class NetworkedServer : MonoBehaviour
             {
                 Debug.LogWarning("Password was right. You are in your Account");
                 SendMessageToClient(ServerToClientSignifiers.LoginComplete + "," + userName, id);
-                ////ListOfPlayerConnected.AddLast(new PlayerAccount(userName,Password,id));
-                ////SendClearListofPlayersToClient();
-                ////SendToListofPlayersToClient();
-                ////// join chat msg
-                ////string JoinChatMsg = "< "+ userName + " > Have just join the chat.";
-                ////SendToAllClient(JoinChatMsg);
+                
             }
             else
             {
@@ -342,23 +342,46 @@ public class NetworkedServer : MonoBehaviour
         SendToAllClient(JoinChatMsg);
     }
 
-    //public class Clinet
-    //{
-    //    public int ConnectionID;
+    public void CreateGameRoom(string userName,string GameRoomName, int id)
+    {
+        GameRoomList.AddLast(new GameRoom(GameRoomName,new PlayerAccount(userName,id)));
+    }
+    public void JoinGameRoom(string userName, string GameRoomName, int id)
+    {
+        GameRoom tempGameroom = new GameRoom();
 
-    //    public Clinet( int conID)
-    //    {
-    //        ConnectionID = conID;
-    //    }
-    //}
+        foreach (GameRoom gr in GameRoomList)
+        {
+            if(gr.RoomName == GameRoomName) 
+            {
+                if (gr.Players.Length < 2)
+                {
+                    gr.Players[1] = new PlayerAccount(userName,id);
+                    break;
+                }
+                
+            }
+        }
 
-    /// <summary>
-    /// PlayerSignifiers
-    /// </summary>
-    //public class PlayerSignifiers
-    //{
-    //    public const int PlayerIdSinifier = 1;
-    //}
+        
+    }
+
+    public class GameRoom
+    {
+        public string RoomName;
+        public PlayerAccount[] Players = new PlayerAccount[1];
+        public GameRoom()
+        {
+          
+        }
+        public  GameRoom (string RN, PlayerAccount A) 
+        {
+            RoomName = RN;
+            Players[0] = A;
+        }
+    }
+
+    
 
     public class PlayerAccount
     {
@@ -405,7 +428,12 @@ public class NetworkedServer : MonoBehaviour
         public const int EnterTheChatRoom = 5; // enter the chat room
 
         public const int Logout = 6;
-}
+
+        public const int CreateGameRoom = 7; /// create a gameroom
+
+        public const int JoinGameRoom = 8; /// join a gameroom
+
+    }
 
     public class ServerToClientSignifiers
     {
@@ -429,6 +457,10 @@ public class NetworkedServer : MonoBehaviour
         public const int ReceiveClearListOFPlayerInChat = 9;// all the list of players 
         
         public const int LogOutComplete = 10;
+        
+        public const int CreateGameRoomComplete = 11;
 
-}
+        public const int JoinGameRoomComplete = 12;
+
+    }
     
