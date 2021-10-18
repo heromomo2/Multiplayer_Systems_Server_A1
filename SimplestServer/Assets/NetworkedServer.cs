@@ -119,6 +119,10 @@ public class NetworkedServer : MonoBehaviour
         {
             LogOutPlayer(id);
         }
+        else if (signifier == ClientToServerSignifiers.SendChatPrivateMsg)
+        {
+            SendToSpecificClient(csv[1], csv[2], id);
+        }
     }
 
 
@@ -248,8 +252,33 @@ public class NetworkedServer : MonoBehaviour
         }
     }
 
-    public void SendToSpecificClient() 
-    { 
+    public void SendToSpecificClient(string Msg, string UserName, int id ) 
+    {
+        PlayerAccount SpecifierPlayer = new PlayerAccount();
+        bool isPlayerReal = false;
+
+        foreach (PlayerAccount pa in ListOfPlayerConnected)
+        {
+            if(pa.name == UserName) 
+            {
+                SpecifierPlayer = pa;
+                isPlayerReal = true;
+                break;
+            }
+        }
+        if (isPlayerReal) 
+        {
+            if (SpecifierPlayer.ConnectionID != id)
+            {
+                SendMessageToClient(ServerToClientSignifiers.ReceivePrivateChatMsg + "," + Msg, id);
+                SendMessageToClient(ServerToClientSignifiers.ReceivePrivateChatMsg + "," + Msg, SpecifierPlayer.ConnectionID);
+            }
+            else 
+            {
+                SendMessageToClient(ServerToClientSignifiers.ReceivePrivateChatMsg + "," + Msg, id);
+            }
+        }
+
 
     }
     public void SendToListofPlayersToClient()
