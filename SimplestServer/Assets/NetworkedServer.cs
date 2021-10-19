@@ -14,9 +14,11 @@ public class NetworkedServer : MonoBehaviour
     int hostID;
     int socketPort = 5491;
 
-    LinkedList<GameRoom> GameRoomList;
+    LinkedList<GameRoom> ListOfgamerooms;
     LinkedList<PlayerAccount> playerAccounts;
     LinkedList<PlayerAccount> ListOfPlayerConnected;
+
+    int PlayerWaitingForMatchWithID = -1;
 
     // Start is called before the first frame update
     void Start()
@@ -29,7 +31,7 @@ public class NetworkedServer : MonoBehaviour
         hostID = NetworkTransport.AddHost(topology, socketPort, null);
 
 
-        // ClientList = new LinkedList<Clinet>();
+        ListOfgamerooms = new LinkedList<GameRoom>();
         ListOfPlayerConnected = new LinkedList<PlayerAccount>();
         playerAccounts = new LinkedList<PlayerAccount>();
         // read in player accounts from wherever
@@ -105,7 +107,7 @@ public class NetworkedServer : MonoBehaviour
         {
             string Msg = csv[1];
             
-            SendToAllClient( Msg);
+            SendingGlobalMessageInChat( Msg);
         }
         else if (signifier == ClientToServerSignifiers.EnterTheChatRoom)
         {
@@ -115,16 +117,63 @@ public class NetworkedServer : MonoBehaviour
         {
             LogOutPlayer(id);
         }
-        else if (signifier == ClientToServerSignifiers.CreateGameRoom)
-        {
-            LogOutPlayer(id);
-        }
         else if (signifier == ClientToServerSignifiers.SendChatPrivateMsg)
         {
-            SendToSpecificClient(csv[1], csv[2], id);
+            SendIngPrivateMessageInChat(csv[1], csv[2], id);
         }
+        else if(signifier == ClientToServerSignifiers.JoinQueueForGameRoom) 
+        {
+            Debug.Log(" We need to get this player in a waiting Queue!!!");
+
+            if(PlayerWaitingForMatchWithID == -1) 
+            {
+                PlayerWaitingForMatchWithID = id;
+            }
+            else 
+            {
+                // so what if the player with their id being stored in PlayWaitingForMatchWithID has left???
+                GameRoom Gr = new GameRoom (PlayerWaitingForMatchWithID, id);
+                ListOfgamerooms.AddLast(Gr);
+
+
+                SendMessageToClient(ServerToClientSignifiers.GameStart + ",0", Gr.PlayerTwoID);
+                SendMessageToClient(ServerToClientSignifiers.GameStart + ",0", Gr.playerOneID);
+                PlayerWaitingForMatchWithID = -1;
+            }
+        }
+        else if (signifier == ClientToServerSignifiers.TicTacToesSomethingSomthing) 
+        {
+            GameRoom gr = GetGameRoomClientId(id);
+            if(gr != null) 
+            {
+                if (gr.playerOneID == id)
+                {
+                    SendMessageToClient(ServerToClientSignifiers.OpponentPlayed+",0", gr.PlayerTwoID);
+                }
+                else 
+                {
+                    SendMessageToClient(ServerToClientSignifiers.OpponentPlayed + ",0", gr.playerOneID);
+                }
+                //Bug:we never clean up our GameRooms, even One players leaves
+                // we need to 
+            }
+
+        }
+
+
     }
 
+    private GameRoom GetGameRoomClientId (int id) 
+    {
+        foreach(GameRoom gr in ListOfgamerooms)
+        {
+            if (gr.playerOneID == id || gr.PlayerTwoID == id) 
+            {
+                return gr;
+            }
+        }
+        return null;
+    }
 
     public void SavePlayerManagementFile() 
     {
@@ -244,7 +293,7 @@ public class NetworkedServer : MonoBehaviour
         // send to success/ failure
     }
 
-    public void SendToAllClient(string Msg) 
+    public void SendingGlobalMessageInChat(string Msg) 
     {
         foreach ( PlayerAccount pa in ListOfPlayerConnected)
         {
@@ -252,7 +301,7 @@ public class NetworkedServer : MonoBehaviour
         }
     }
 
-    public void SendToSpecificClient(string Msg, string UserName, int id ) 
+    public void SendIngPrivateMessageInChat(string Msg, string UserName, int id ) 
     {
         PlayerAccount SpecifierPlayer = new PlayerAccount();
         bool isPlayerReal = false;
@@ -321,7 +370,7 @@ public class NetworkedServer : MonoBehaviour
         if (TempPlayerAccount.name != ""&& TempPlayerAccount.name != null && IsplayerInChat)
         {
             string DisconnectMsg = "< " + TempPlayerAccount.name + " > Have been disconnected from the chat.";
-            SendToAllClient(DisconnectMsg);
+            SendingGlobalMessageInChat(DisconnectMsg);
             return;
         }
     }
@@ -348,7 +397,7 @@ public class NetworkedServer : MonoBehaviour
         if (TempPlayerAccount.name != "" && TempPlayerAccount.name != null && IsplayerInChat)
         {
             string LogOutMsgOfChat = "< " + TempPlayerAccount.name + " > Has Logout.";
-            SendToAllClient(LogOutMsgOfChat);
+            SendingGlobalMessageInChat(LogOutMsgOfChat);
 
             LogOutMsgOfChat = ServerToClientSignifiers.LogOutComplete + ",8";
             SendClearListofPlayersToClient();
@@ -368,49 +417,50 @@ public class NetworkedServer : MonoBehaviour
         SendToListofPlayersToClient();
         // join chat msg
         string JoinChatMsg = "< " + userName + " > Have just join the chat.";
-        SendToAllClient(JoinChatMsg);
+        SendingGlobalMessageInChat(JoinChatMsg);
     }
 
-    public void CreateGameRoom(string userName,string GameRoomName, int id)
-    {
-        GameRoomList.AddLast(new GameRoom(GameRoomName,new PlayerAccount(userName,id)));
-    }
-    public void JoinGameRoom(string userName, string GameRoomName, int id)
-    {
-        GameRoom tempGameroom = new GameRoom();
+    //public void CreateGameRoom(string userName,string GameRoomName, int id)
+    //{
+    //    GameRoomList.AddLast(new GameRoom(GameRoomName,new PlayerAccount(userName,id)));
+    //}
+    //public void JoinGameRoom(string userName, string GameRoomName, int id)
+    //{
+    //    GameRoom tempGameroom = new GameRoom();
 
-        foreach (GameRoom gr in GameRoomList)
-        {
-            if(gr.RoomName == GameRoomName) 
-            {
-                if (gr.Players.Length < 2)
-                {
-                    gr.Players[1] = new PlayerAccount(userName,id);
-                    break;
-                }
-                
-            }
-        }
+    //    foreach (GameRoom gr in GameRoomList)
+    //    {
+    //        if(gr.RoomName == GameRoomName) 
+    //        {
+    //            if (gr.Players.Length < 2)
+    //            {
+    //                gr.Players[1] = new PlayerAccount(userName,id);
+    //                break;
+    //            }
 
-        
-    }
+    //        }
+    //    }
+
+
+    //}
 
     public class GameRoom
     {
-        public string RoomName;
-        public PlayerAccount[] Players = new PlayerAccount[1];
+        //public string RoomName;
+        public int playerOneID, PlayerTwoID;
+
         public GameRoom()
         {
-          
+
         }
-        public  GameRoom (string RN, PlayerAccount A) 
+        public GameRoom( int PlayerID1, int PlayerID2)
         {
-            RoomName = RN;
-            Players[0] = A;
+            playerOneID = PlayerID1;
+            PlayerTwoID = PlayerID2;
         }
     }
 
-    
+
 
     public class PlayerAccount
     {
@@ -458,13 +508,13 @@ public class NetworkedServer : MonoBehaviour
 
         public const int Logout = 6;
 
-        public const int CreateGameRoom = 7; /// create a gameroom
+        public const int JoinQueueForGameRoom = 7;
 
-        public const int JoinGameRoom = 8; /// join a gameroom
+        public const int TicTacToesSomethingSomthing = 8;
 
     }
 
-    public class ServerToClientSignifiers
+public class ServerToClientSignifiers
     {
 
         public const int LoginComplete = 1;
@@ -486,10 +536,10 @@ public class NetworkedServer : MonoBehaviour
         public const int ReceiveClearListOFPlayerInChat = 9;// all the list of players 
         
         public const int LogOutComplete = 10;
-        
-        public const int CreateGameRoomComplete = 11;
 
-        public const int JoinGameRoomComplete = 12;
+        public const int OpponentPlayed = 11;
+
+         public const int GameStart = 12;
 
     }
     
