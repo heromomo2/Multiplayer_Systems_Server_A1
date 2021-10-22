@@ -14,6 +14,8 @@ public class NetworkedServer : MonoBehaviour
     int hostID;
     int socketPort = 5491;
 
+
+    int[] RematchAgree = new int [2];
     LinkedList<GameRoom> ListOfgamerooms;
     LinkedList<PlayerAccount> playerAccounts;
     LinkedList<PlayerAccount> ListOfPlayerConnected;
@@ -136,8 +138,8 @@ public class NetworkedServer : MonoBehaviour
                 ListOfgamerooms.AddLast(Gr);
 
 
-                SendMessageToClient(ServerToClientSignifiers.GameStart + ",0", Gr.PlayerTwoID);
-                SendMessageToClient(ServerToClientSignifiers.GameStart + ",0", Gr.playerOneID);
+                SendMessageToClient(ServerToClientSignifiers.GameStart + ", 2", Gr.PlayerTwoID);
+                SendMessageToClient(ServerToClientSignifiers.GameStart + ", 1", Gr.playerOneID);
                 PlayerWaitingForMatchWithID = -1;
             }
         }
@@ -148,18 +150,53 @@ public class NetworkedServer : MonoBehaviour
             {
                 if (gr.playerOneID == id)
                 {
-                    SendMessageToClient(ServerToClientSignifiers.OpponentPlayed+",0", gr.PlayerTwoID);
+
+                    SendMessageToClient(ServerToClientSignifiers.OpponentPlayed+","+ csv[1] , gr.PlayerTwoID);
+
+                    SendMessageToClient(ServerToClientSignifiers.WaitForOppentMoved + ",0", gr.playerOneID);// make the play wait
                 }
                 else 
                 {
-                    SendMessageToClient(ServerToClientSignifiers.OpponentPlayed + ",0", gr.playerOneID);
+                    SendMessageToClient(ServerToClientSignifiers.OpponentPlayed + "," + csv[1], gr.playerOneID);
+
+                    SendMessageToClient(ServerToClientSignifiers.WaitForOppentMoved + ",0", gr.PlayerTwoID);// make the play wait
                 }
                 //Bug:we never clean up our GameRooms, even One players leaves
                 // we need to 
             }
 
         }
+        else if (signifier == ClientToServerSignifiers.ReMatchOfTicTacToe) 
+        {
+            GameRoom gr = GetGameRoomClientId(id);
 
+
+            if (gr.playerOneID == id) 
+            {
+                RematchAgree[0] = 1;
+            }
+            else 
+            {
+                RematchAgree[1] = 1;
+            }
+
+            if (RematchAgree[0] == 1 && RematchAgree[1] == 1) 
+            {
+                SendMessageToClient(ServerToClientSignifiers.ReMatchOfTicTacToeComplete + ",2", gr.PlayerTwoID);
+                SendMessageToClient(ServerToClientSignifiers.ReMatchOfTicTacToeComplete + ",1", gr.playerOneID);
+
+                RematchAgree[0] = 0;
+                RematchAgree[1] = 0;
+            }
+
+        }
+        else if (signifier == ClientToServerSignifiers.ExitTacTacToe)
+        {
+            GameRoom gr = GetGameRoomClientId(id);
+
+
+          
+        }
 
     }
 
@@ -506,40 +543,50 @@ public class NetworkedServer : MonoBehaviour
 
         public const int EnterTheChatRoom = 5; // enter the chat room
 
-        public const int Logout = 6;
+        public const int Logout = 6;//
 
         public const int JoinQueueForGameRoom = 7;
 
         public const int TicTacToesSomethingSomthing = 8;
+
+        public const int ReMatchOfTicTacToe = 9;
+
+        public const int ExitTacTacToe = 10;
 
     }
 
 public class ServerToClientSignifiers
     {
 
-        public const int LoginComplete = 1;
 
-        public const int LoginFailedAccount = 2;
+    public const int LoginComplete = 1;
 
-        public const int LoginFailedPassword = 3;
+    public const int LoginFailedAccount = 2;
 
-        public const int CreateAcountComplete = 4;
+    public const int LoginFailedPassword = 3;
 
-        public const int CreateAcountFailed = 5;
+    public const int CreateAcountComplete = 4;
 
-        public const int ChatView = 6; // all the receive globe chatmessage.
+    public const int CreateAcountFailed = 5;
 
-        public const int ReceivePrivateChatMsg = 7;//  receive a private chat message.
+    public const int ChatView = 6; // all the receive globe chatmessage.
 
-        public const int ReceiveListOFPlayerInChat = 8;// all the list of players in the chat
+    public const int ReceivePrivateChatMsg = 7;//  receive a private chat message.
 
-        public const int ReceiveClearListOFPlayerInChat = 9;// all the list of players 
-        
-        public const int LogOutComplete = 10;
+    public const int ReceiveListOFPlayerInChat = 8;// all the list of players in the chat
 
-        public const int OpponentPlayed = 11;
+    public const int ReceiveClearListOFPlayerInChat = 9;// all the list of players 
 
-         public const int GameStart = 12;
+    public const int LogOutComplete = 10;
 
-    }
+    public const int OpponentPlayed = 11;
+
+    public const int GameStart = 12;
+
+    public const int WaitForOppentMoved = 13;
+
+    public const int ReMatchOfTicTacToeComplete = 14;
+
+    public const int ExitTacTacToeComplete = 15;
+}
     
