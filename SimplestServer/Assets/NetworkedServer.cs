@@ -194,8 +194,11 @@ public class NetworkedServer : MonoBehaviour
         {
             GameRoom gr = GetGameRoomClientId(id);
 
+            ListOfgamerooms.Remove(gr);
 
-          
+            SendMessageToClient(ServerToClientSignifiers.ExitTacTacToeComplete + ",2", gr.PlayerTwoID);
+            SendMessageToClient(ServerToClientSignifiers.ExitTacTacToeComplete + ",1", gr.playerOneID); 
+
         }
 
     }
