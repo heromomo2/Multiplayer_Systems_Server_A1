@@ -194,10 +194,25 @@ public class NetworkedServer : MonoBehaviour
         {
             GameRoom gr = GetGameRoomClientId(id);
 
-            ListOfgamerooms.Remove(gr);
+           // ListOfgamerooms.Remove(gr);
 
-            SendMessageToClient(ServerToClientSignifiers.ExitTacTacToeComplete + ",2", gr.PlayerTwoID);
-            SendMessageToClient(ServerToClientSignifiers.ExitTacTacToeComplete + ",1", gr.playerOneID); 
+            if (gr.playerOneID == id)
+            {
+                SendMessageToClient(ServerToClientSignifiers.PreventRematch + ",2", gr.PlayerTwoID);
+                SendMessageToClient(ServerToClientSignifiers.ExitTacTacToeComplete + ",1", gr.playerOneID);
+                gr.playerOneID = -1;
+            }
+            else
+            {
+                SendMessageToClient(ServerToClientSignifiers.ExitTacTacToeComplete + ",2", gr.PlayerTwoID);
+                SendMessageToClient(ServerToClientSignifiers.PreventRematch + ",1", gr.playerOneID);
+                gr.PlayerTwoID = -1;
+            }
+           
+            if(gr.playerOneID == -1 && gr.PlayerTwoID == -1) 
+            {
+                ListOfgamerooms.Remove(gr);
+            }
 
         }
 
@@ -591,5 +606,7 @@ public class ServerToClientSignifiers
     public const int ReMatchOfTicTacToeComplete = 14;
 
     public const int ExitTacTacToeComplete = 15;
+
+    public const int PreventRematch = 16;
 }
     
