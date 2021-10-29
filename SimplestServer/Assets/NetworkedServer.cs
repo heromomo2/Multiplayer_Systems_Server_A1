@@ -21,6 +21,7 @@ public class NetworkedServer : MonoBehaviour
     LinkedList<PlayerAccount> ListOfPlayerConnected;
 
     int PlayerWaitingForMatchWithID = -1;
+    PlayerAccount PlayerWaitingForMatch = new PlayerAccount("TempPlayer", -1);
 
     // Start is called before the first frame update
     void Start()
@@ -105,11 +106,11 @@ public class NetworkedServer : MonoBehaviour
 
             Login(csv[1], csv[2], id);
         }
-        else if (signifier == ClientToServerSignifiers.SendChatMsg) 
+        else if (signifier == ClientToServerSignifiers.SendChatMsg)
         {
             string Msg = csv[1];
-            
-            SendingGlobalMessageInChat( Msg);
+
+            SendingGlobalMessageInChat(Msg);
         }
         else if (signifier == ClientToServerSignifiers.EnterTheChatRoom)
         {
@@ -123,67 +124,71 @@ public class NetworkedServer : MonoBehaviour
         {
             SendIngPrivateMessageInChat(csv[1], csv[2], id);
         }
-        else if(signifier == ClientToServerSignifiers.JoinQueueForGameRoom) 
+        else if (signifier == ClientToServerSignifiers.JoinQueueForGameRoom)
         {
             Debug.Log(" We need to get this player in a waiting Queue!!!");
 
-            if(PlayerWaitingForMatchWithID == -1) 
+            if (PlayerWaitingForMatch.ConnectionID == -1)
             {
-                PlayerWaitingForMatchWithID = id;
+                PlayerWaitingForMatch.ConnectionID = id;
+                PlayerWaitingForMatch.name = csv[1];
             }
-            else 
+            else
             {
                 // so what if the player with their id being stored in PlayWaitingForMatchWithID has left???
-                GameRoom Gr = new GameRoom (PlayerWaitingForMatchWithID, id);
+                GameRoom Gr = new GameRoom(PlayerWaitingForMatch, new PlayerAccount (csv[1], id));
                 ListOfgamerooms.AddLast(Gr);
 
 
-                SendMessageToClient(ServerToClientSignifiers.GameStart + ", 2", Gr.PlayerTwoID);
-                SendMessageToClient(ServerToClientSignifiers.GameStart + ", 1", Gr.playerOneID);
-                PlayerWaitingForMatchWithID = -1;
+                SendMessageToClient(ServerToClientSignifiers.GameStart + ", 2", Gr.PlayerTwo.ConnectionID);
+                SendMessageToClient(ServerToClientSignifiers.GameStart + ", 1", Gr.PlayerOne.ConnectionID);
+
+                //PlayerWaitingForMatchWithID = -1;
+                PlayerWaitingForMatch = new PlayerAccount("TempPlayer", -1);
+
             }
         }
-        else if (signifier == ClientToServerSignifiers.TicTacToesSomethingSomthing) 
+        else if (signifier == ClientToServerSignifiers.TicTacToesSomethingSomthing)
         {
             GameRoom gr = GetGameRoomClientId(id);
-            if(gr != null) 
+            if (gr != null)
             {
-                if (gr.playerOneID == id)
+                if (gr.PlayerOne.ConnectionID == id)
                 {
 
-                    SendMessageToClient(ServerToClientSignifiers.OpponentPlayed+","+ csv[1] , gr.PlayerTwoID);
+                    SendMessageToClient(ServerToClientSignifiers.OpponentPlayed + "," + csv[1], gr.PlayerTwo.ConnectionID);
 
-                    SendMessageToClient(ServerToClientSignifiers.WaitForOppentMoved + ",0", gr.playerOneID);// make the play wait
+                    SendMessageToClient(ServerToClientSignifiers.WaitForOppentMoved + ",0", gr.PlayerOne.ConnectionID);// make the play wait
                 }
-                else 
+                else
                 {
-                    SendMessageToClient(ServerToClientSignifiers.OpponentPlayed + "," + csv[1], gr.playerOneID);
+                    SendMessageToClient(ServerToClientSignifiers.OpponentPlayed + "," + csv[1], gr.PlayerOne.ConnectionID);
 
-                    SendMessageToClient(ServerToClientSignifiers.WaitForOppentMoved + ",0", gr.PlayerTwoID);// make the play wait
+                    SendMessageToClient(ServerToClientSignifiers.WaitForOppentMoved + ",0", gr.PlayerTwo.ConnectionID);// make the play wait
                 }
                 //Bug:we never clean up our GameRooms, even One players leaves
                 // we need to 
             }
 
         }
-        else if (signifier == ClientToServerSignifiers.ReMatchOfTicTacToe) 
+        else if (signifier == ClientToServerSignifiers.ReMatchOfTicTacToe)
         {
             GameRoom gr = GetGameRoomClientId(id);
 
 
-            if (gr.playerOneID == id) 
+            if (gr.PlayerOne.ConnectionID== id)
             {
                 RematchAgree[0] = 1;
             }
-            else 
+            else
             {
                 RematchAgree[1] = 1;
             }
 
-            if (RematchAgree[0] == 1 && RematchAgree[1] == 1) 
+            if (RematchAgree[0] == 1 && RematchAgree[1] == 1)
             {
-                SendMessageToClient(ServerToClientSignifiers.ReMatchOfTicTacToeComplete + ",2", gr.PlayerTwoID);
-                SendMessageToClient(ServerToClientSignifiers.ReMatchOfTicTacToeComplete + ",1", gr.playerOneID);
+                SendMessageToClient(ServerToClientSignifiers.ReMatchOfTicTacToeComplete + ",2", gr.PlayerTwo.ConnectionID);
+                SendMessageToClient(ServerToClientSignifiers.ReMatchOfTicTacToeComplete + ",1", gr.PlayerOne.ConnectionID);
 
                 RematchAgree[0] = 0;
                 RematchAgree[1] = 0;
@@ -194,35 +199,56 @@ public class NetworkedServer : MonoBehaviour
         {
             GameRoom gr = GetGameRoomClientId(id);
 
-           // ListOfgamerooms.Remove(gr);
+            // ListOfgamerooms.Remove(gr);
 
-            if (gr.playerOneID == id)
+            if (gr.PlayerOne.ConnectionID == id)
             {
-                SendMessageToClient(ServerToClientSignifiers.PreventRematch + ",2", gr.PlayerTwoID);
-                SendMessageToClient(ServerToClientSignifiers.ExitTacTacToeComplete + ",1", gr.playerOneID);
-                gr.playerOneID = -1;
+                SendMessageToClient(ServerToClientSignifiers.PreventRematch + ",2", gr.PlayerTwo.ConnectionID);
+                SendMessageToClient(ServerToClientSignifiers.ExitTacTacToeComplete + ",1", gr.PlayerOne.ConnectionID);
+                gr.PlayerOne.ConnectionID = -1;
             }
             else
             {
-                SendMessageToClient(ServerToClientSignifiers.ExitTacTacToeComplete + ",2", gr.PlayerTwoID);
-                SendMessageToClient(ServerToClientSignifiers.PreventRematch + ",1", gr.playerOneID);
-                gr.PlayerTwoID = -1;
+                SendMessageToClient(ServerToClientSignifiers.ExitTacTacToeComplete + ",2", gr.PlayerTwo.ConnectionID);
+                SendMessageToClient(ServerToClientSignifiers.PreventRematch + ",1", gr.PlayerOne.ConnectionID);
+                gr.PlayerOne.ConnectionID = -1;
             }
-           
-            if(gr.playerOneID == -1 && gr.PlayerTwoID == -1) 
+
+            if (gr.PlayerOne.ConnectionID == -1 && gr.PlayerTwo.ConnectionID == -1)
             {
                 ListOfgamerooms.Remove(gr);
             }
 
         }
-
+        else if (signifier == ClientToServerSignifiers.SearchGameRoomsByUserName)
+        {
+            if (GetGameRoomClientByUserName(csv[1]) == null)
+            {
+                SendMessageToClient(ServerToClientSignifiers.SearchGameRoomsByUserNameFailed + ",0", id);
+            }
+            else
+            {
+                SendMessageToClient(ServerToClientSignifiers.SearchGameRoomsByUserNameComplete + ",0" , id);
+            }
+        }
     }
 
     private GameRoom GetGameRoomClientId (int id) 
     {
         foreach(GameRoom gr in ListOfgamerooms)
         {
-            if (gr.playerOneID == id || gr.PlayerTwoID == id) 
+            if (gr.PlayerOne.ConnectionID == id || gr.PlayerTwo.ConnectionID == id) 
+            {
+                return gr;
+            }
+        }
+        return null;
+    }
+    private GameRoom GetGameRoomClientByUserName(string Username)
+    {
+        foreach (GameRoom gr in ListOfgamerooms)
+        {
+            if (gr.PlayerOne.name == Username|| gr.PlayerTwo.name == Username)
             {
                 return gr;
             }
@@ -502,17 +528,24 @@ public class NetworkedServer : MonoBehaviour
     public class GameRoom
     {
         //public string RoomName;
-        public int playerOneID, PlayerTwoID;
+        //public PlayerAccount  playerOneID1, PlayerTwoID2;
+        public PlayerAccount  PlayerOne, PlayerTwo;
 
         public GameRoom()
         {
 
         }
-        public GameRoom( int PlayerID1, int PlayerID2)
+        //public GameRoom( int PlayerID1, int PlayerID2)
+        //{
+        //    playerOneID = PlayerID1;
+        //    PlayerTwoID = PlayerID2;
+        //}
+        public GameRoom(PlayerAccount PlayerID1, PlayerAccount PlayerID2)
         {
-            playerOneID = PlayerID1;
-            PlayerTwoID = PlayerID2;
-        }
+            PlayerOne = PlayerID1;
+             PlayerTwo = PlayerID2;
+         }
+
     }
 
 
@@ -551,31 +584,32 @@ public class NetworkedServer : MonoBehaviour
 
     public class ClientToServerSignifiers
     {
-        public const int CreateAcount = 1;
+    public const int CreateAcount = 1;
 
-        public const int Login = 2;
+    public const int Login = 2;
 
-        public const int SendChatMsg = 3; // send a globle chat message
+    public const int SendChatMsg = 3; // send a globle chat message
 
-        public const int SendChatPrivateMsg = 4;// send a chat private msg
+    public const int SendChatPrivateMsg = 4;// send a chat private msg
 
-        public const int EnterTheChatRoom = 5; // enter the chat room
+    public const int EnterTheChatRoom = 5; // enter the chat room
 
-        public const int Logout = 6;//
+    public const int Logout = 6;//
 
-        public const int JoinQueueForGameRoom = 7;
+    public const int JoinQueueForGameRoom = 7;
 
-        public const int TicTacToesSomethingSomthing = 8;
+    public const int TicTacToesSomethingSomthing = 8;
 
-        public const int ReMatchOfTicTacToe = 9;
+    public const int ReMatchOfTicTacToe = 9;
 
-        public const int ExitTacTacToe = 10;
+    public const int ExitTacTacToe = 10;
 
-    }
+    public const int SearchGameRoomsByUserName = 11;
+
+}
 
 public class ServerToClientSignifiers
     {
-
 
     public const int LoginComplete = 1;
 
@@ -608,5 +642,9 @@ public class ServerToClientSignifiers
     public const int ExitTacTacToeComplete = 15;
 
     public const int PreventRematch = 16;
+
+    public const int SearchGameRoomsByUserNameComplete = 17;
+
+    public const int SearchGameRoomsByUserNameFailed = 18;
 }
     
