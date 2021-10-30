@@ -209,12 +209,20 @@ public class NetworkedServer : MonoBehaviour
                 SendMessageToClient(ServerToClientSignifiers.PreventRematch + ",2", gr.PlayerTwo.ConnectionID);
                 SendMessageToClient(ServerToClientSignifiers.ExitTacTacToeComplete + ",1", gr.PlayerOne.ConnectionID);
                 gr.PlayerOne.ConnectionID = -1;
+                if (gr.Observer != null)
+                {
+                    SendMessageToClient(ServerToClientSignifiers.PlayerDisconnectFromGameRoom + ",0", gr.Observer.ConnectionID);
+                }
             }
             else
             {
                 SendMessageToClient(ServerToClientSignifiers.ExitTacTacToeComplete + ",2", gr.PlayerTwo.ConnectionID);
                 SendMessageToClient(ServerToClientSignifiers.PreventRematch + ",1", gr.PlayerOne.ConnectionID);
                 gr.PlayerOne.ConnectionID = -1;
+                if (gr.Observer != null)
+                {
+                    SendMessageToClient(ServerToClientSignifiers.PlayerDisconnectFromGameRoom + ",0", gr.Observer.ConnectionID);
+                }
             }
 
             if (gr.PlayerOne.ConnectionID == -1 && gr.PlayerTwo.ConnectionID == -1)
@@ -234,25 +242,36 @@ public class NetworkedServer : MonoBehaviour
             {
                 GameRoom gr = GetGameRoomClientByUserName(csv[1]);
 
-                SendMessageToClient(ServerToClientSignifiers.SearchGameRoomsByUserNameComplete + ",0", id);
-                gr.Observer = new PlayerAccount("Observer", id);
+               
 
                 if (gr.PlayerOne.name == csv[1])
                 {
-                    SendMessageToClient(ServerToClientSignifiers.YouareBeingObserved+ ",0", gr.PlayerOne.ConnectionID);
+                    SendMessageToClient(ServerToClientSignifiers.YouareBeingObserved + ",0", gr.PlayerOne.ConnectionID);
+                    SendMessageToClient(ServerToClientSignifiers.SearchGameRoomsByUserNameComplete + ","+gr.PlayerTwo.name.ToString(), id);
+                    gr.Observer = new PlayerAccount("Observer", id);
                 }
-                else 
+                else
                 {
                     SendMessageToClient(ServerToClientSignifiers.YouareBeingObserved + ",0", gr.PlayerTwo.ConnectionID);
+                    SendMessageToClient(ServerToClientSignifiers.SearchGameRoomsByUserNameComplete + "," + gr.PlayerOne.name.ToString(), id);
+                    gr.Observer = new PlayerAccount("Observer", id);
                 }
             }
         }
         else if (signifier == ClientToServerSignifiers.SendObserverData)
         {
             GameRoom gr = GetGameRoomClientId(id);
-            SendMessageToClient(ServerToClientSignifiers.ObserverGetsMove +"," + csv[1] + "," + csv[2] + "," + csv[3] + "," + csv[4] + "," + csv[5] + "," + csv[6] + "," + csv[7] + "," + csv[8] + "," + csv[9] + "," + csv[10], gr.Observer.ConnectionID);
-           // Debug.LogWarning("SendObserverData" + "," + csv[1] + "," + csv[2] + "," + csv[3] + ",\n" + csv[4] + "," + csv[5] + "," + csv[7] + ",\n"+csv[6] + "," + csv[8] + "," + csv[9] + ",\n" + csv[10]);
+            SendMessageToClient(ServerToClientSignifiers.ObserverGetsMove + "," + csv[1] + "," + csv[2] + "," + csv[3] + "," + csv[4] + "," + csv[5] + "," + csv[6] + "," + csv[7] + "," + csv[8] + "," + csv[9] + "," + csv[10], gr.Observer.ConnectionID);
+            // Debug.LogWarning("SendObserverData" + "," + csv[1] + "," + csv[2] + "," + csv[3] + ",\n" + csv[4] + "," + csv[5] + "," + csv[7] + ",\n"+csv[6] + "," + csv[8] + "," + csv[9] + ",\n" + csv[10]);
         }
+        else if (signifier == ClientToServerSignifiers.StopObserving)
+        {
+            GameRoom gr = GetGameRoomClientId(id);
+            SendMessageToClient(ServerToClientSignifiers.StopObservingComplete + ",0", gr.Observer.ConnectionID);
+            gr.Observer = null;
+
+        }
+
     }
 
     private GameRoom GetGameRoomClientId (int id) 
@@ -649,6 +668,8 @@ public class NetworkedServer : MonoBehaviour
 
     public const int SendObserverData = 12;
 
+    public const int StopObserving = 13;
+
 }
 
 public class ServerToClientSignifiers
@@ -697,5 +718,7 @@ public class ServerToClientSignifiers
     public const int YouAreNotBeingObserved = 22;
 
     public const int PlayerDisconnectFromGameRoom = 23;
+
+    public const int StopObservingComplete = 24;
 }
     
