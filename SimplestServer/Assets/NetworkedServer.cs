@@ -500,38 +500,62 @@ public class NetworkedServer : MonoBehaviour
     public void DisconnectFromGame(int recConnectionID)
     {
 
-        if (ListOfgamerooms != null && ListOfgamerooms.Count != 0)
-        {
-            GameRoom gr = GetGameRoomClientId(recConnectionID);
+        bool isThisRoom = false;
+        
+          GameRoom TempGameRoom = new GameRoom();
 
-            if (gr.PlayerOne.ConnectionID == recConnectionID)
+        foreach (GameRoom gr in ListOfgamerooms)
+        {
+            if (gr.PlayerOne.ConnectionID == recConnectionID || gr.PlayerTwo.ConnectionID == recConnectionID)
+            {
+                TempGameRoom = gr;
+                isThisRoom = true;
+                break;
+            }
+            else if (gr.Observer != null) 
+            {
+                if (gr.Observer.ConnectionID == recConnectionID) 
+                {
+                    TempGameRoom = gr;
+                    isThisRoom = true;
+                    break;
+                }
+            }
+        }
+
+
+        if (isThisRoom == true) 
+        {
+
+            if (TempGameRoom.PlayerOne.ConnectionID == recConnectionID)
             {
                 Debug.LogWarning("A Player has disconnect");
-                SendMessageToClient(ServerToClientSignifiers.PlayerDisconnectFromGameRoom + ",0", gr.PlayerTwo.ConnectionID);
-                if (gr.Observer != null)
+                SendMessageToClient(ServerToClientSignifiers.PlayerDisconnectFromGameRoom + ",0", TempGameRoom.PlayerTwo.ConnectionID);
+                if (TempGameRoom.Observer != null)
                 {
-                    SendMessageToClient(ServerToClientSignifiers.PlayerDisconnectFromGameRoom + ",0", gr.Observer.ConnectionID);
+                    SendMessageToClient(ServerToClientSignifiers.PlayerDisconnectFromGameRoom + ",0", TempGameRoom.Observer.ConnectionID);
                 }
-                ListOfgamerooms.Remove(gr);
+                ListOfgamerooms.Remove(TempGameRoom);
             }
-            else if (gr.PlayerTwo.ConnectionID == recConnectionID)
+            else if (TempGameRoom.PlayerTwo.ConnectionID == recConnectionID)
             {
-                SendMessageToClient(ServerToClientSignifiers.PlayerDisconnectFromGameRoom + ",0", gr.PlayerOne.ConnectionID);
-                if (gr.Observer != null)
+                SendMessageToClient(ServerToClientSignifiers.PlayerDisconnectFromGameRoom + ",0", TempGameRoom.PlayerOne.ConnectionID);
+                if (TempGameRoom.Observer != null)
                 {
-                    SendMessageToClient(ServerToClientSignifiers.PlayerDisconnectFromGameRoom + ",0", gr.Observer.ConnectionID);
+                    SendMessageToClient(ServerToClientSignifiers.PlayerDisconnectFromGameRoom + ",0", TempGameRoom.Observer.ConnectionID);
 
                 }
-                ListOfgamerooms.Remove(gr);
+                ListOfgamerooms.Remove(TempGameRoom);
             }
-            else if (gr.Observer.ConnectionID == recConnectionID)
+            else if (TempGameRoom.Observer.ConnectionID == recConnectionID)
             {
                 Debug.LogWarning("Observer has disconnect");
 
-                SendMessageToClient(ServerToClientSignifiers.YouAreNotBeingObserved + ",0", gr.PlayerOne.ConnectionID);
-                SendMessageToClient(ServerToClientSignifiers.YouAreNotBeingObserved + ",0", gr.PlayerTwo.ConnectionID);
-                gr.Observer = null;
+                SendMessageToClient(ServerToClientSignifiers.YouAreNotBeingObserved + ",0", TempGameRoom.PlayerOne.ConnectionID);
+                SendMessageToClient(ServerToClientSignifiers.YouAreNotBeingObserved + ",0", TempGameRoom.PlayerTwo.ConnectionID);
+                TempGameRoom.Observer = null;
             }
+            isThisRoom = false;
         }
     }
     public void LogOutPlayer(int recConnectionID)
