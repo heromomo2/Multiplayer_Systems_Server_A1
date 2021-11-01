@@ -209,6 +209,7 @@ public class NetworkedServer : MonoBehaviour
                 SendMessageToClient(ServerToClientSignifiers.PreventRematch + ",2", gr.PlayerTwo.ConnectionID);
                 SendMessageToClient(ServerToClientSignifiers.ExitTacTacToeComplete + ",1", gr.PlayerOne.ConnectionID);
                 gr.PlayerOne.ConnectionID = -1;
+
                 if (gr.Observer != null)
                 {
                     SendMessageToClient(ServerToClientSignifiers.PlayerDisconnectFromGameRoom + ",0", gr.Observer.ConnectionID);
@@ -218,7 +219,8 @@ public class NetworkedServer : MonoBehaviour
             {
                 SendMessageToClient(ServerToClientSignifiers.ExitTacTacToeComplete + ",2", gr.PlayerTwo.ConnectionID);
                 SendMessageToClient(ServerToClientSignifiers.PreventRematch + ",1", gr.PlayerOne.ConnectionID);
-                gr.PlayerOne.ConnectionID = -1;
+                gr.PlayerTwo.ConnectionID = -1;
+
                 if (gr.Observer != null)
                 {
                     SendMessageToClient(ServerToClientSignifiers.PlayerDisconnectFromGameRoom + ",0", gr.Observer.ConnectionID);
@@ -267,6 +269,8 @@ public class NetworkedServer : MonoBehaviour
         else if (signifier == ClientToServerSignifiers.StopObserving)
         {
             GameRoom gr = GetGameRoomClientId(id);
+            SendMessageToClient(ServerToClientSignifiers.YouAreNotBeingObserved + ",0", gr.PlayerOne.ConnectionID);
+            SendMessageToClient(ServerToClientSignifiers.YouAreNotBeingObserved + ",0", gr.PlayerTwo.ConnectionID);
             SendMessageToClient(ServerToClientSignifiers.StopObservingComplete + ",0", gr.Observer.ConnectionID);
             gr.Observer = null;
 
@@ -278,9 +282,16 @@ public class NetworkedServer : MonoBehaviour
     {
         foreach(GameRoom gr in ListOfgamerooms)
         {
-            if (gr.PlayerOne.ConnectionID == id || gr.PlayerTwo.ConnectionID == id || gr.Observer.ConnectionID == id) 
+            if (gr.PlayerOne.ConnectionID == id || gr.PlayerTwo.ConnectionID == id ) 
             {
                 return gr;
+            }
+            if(gr.Observer != null) 
+            {
+                if(gr.Observer.ConnectionID == id) 
+                {
+                    return gr;
+                }
             }
         }
         return null;
