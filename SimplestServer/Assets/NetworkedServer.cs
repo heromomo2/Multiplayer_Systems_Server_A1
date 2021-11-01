@@ -244,12 +244,12 @@ public class NetworkedServer : MonoBehaviour
             {
                 GameRoom gr = GetGameRoomClientByUserName(csv[1]);
 
-               
+
 
                 if (gr.PlayerOne.name == csv[1])
                 {
                     SendMessageToClient(ServerToClientSignifiers.YouareBeingObserved + ",0", gr.PlayerOne.ConnectionID);
-                    SendMessageToClient(ServerToClientSignifiers.SearchGameRoomsByUserNameComplete + ","+gr.PlayerTwo.name.ToString(), id);
+                    SendMessageToClient(ServerToClientSignifiers.SearchGameRoomsByUserNameComplete + "," + gr.PlayerTwo.name.ToString(), id);
                     gr.Observer = new PlayerAccount("Observer", id);
                 }
                 else
@@ -275,7 +275,22 @@ public class NetworkedServer : MonoBehaviour
             gr.Observer = null;
 
         }
+        else if (signifier == ClientToServerSignifiers.SendGameRoomChatMSG)
+        {
+            GameRoom gr = GetGameRoomClientId(id);
+            string Msg = csv[1];
 
+            if (gr != null)
+            {
+                SendMessageToClient(ServerToClientSignifiers.ReceiveGameRoomChatMSG + ","+ Msg, gr.PlayerOne.ConnectionID);
+                SendMessageToClient(ServerToClientSignifiers.ReceiveGameRoomChatMSG + "," + Msg, gr.PlayerTwo.ConnectionID);
+                if (gr.Observer != null)
+                {
+                    SendMessageToClient(ServerToClientSignifiers.ReceiveGameRoomChatMSG + ","+ Msg, gr.Observer.ConnectionID);
+                }
+            }
+
+        }
     }
 
     private GameRoom GetGameRoomClientId (int id) 
@@ -677,8 +692,8 @@ public class NetworkedServer : MonoBehaviour
 
 }
 
-    public class ClientToServerSignifiers
-    {
+  public class ClientToServerSignifiers
+  {
     public const int CreateAcount = 1;
 
     public const int Login = 2;
@@ -705,10 +720,13 @@ public class NetworkedServer : MonoBehaviour
 
     public const int StopObserving = 13;
 
-}
+    public const int SendGameRoomChatMSG = 14;
+
+
+  }
 
 public class ServerToClientSignifiers
-    {
+{
 
     public const int LoginComplete = 1;
 
@@ -755,5 +773,7 @@ public class ServerToClientSignifiers
     public const int PlayerDisconnectFromGameRoom = 23;
 
     public const int StopObservingComplete = 24;
+
+    public const int ReceiveGameRoomChatMSG = 25;
 }
     
