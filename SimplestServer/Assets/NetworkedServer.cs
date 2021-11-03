@@ -282,15 +282,66 @@ public class NetworkedServer : MonoBehaviour
 
             if (gr != null)
             {
-                SendMessageToClient(ServerToClientSignifiers.ReceiveGameRoomChatMSG + ","+ Msg, gr.PlayerOne.ConnectionID);
+                SendMessageToClient(ServerToClientSignifiers.ReceiveGameRoomChatMSG + "," + Msg, gr.PlayerOne.ConnectionID);
                 SendMessageToClient(ServerToClientSignifiers.ReceiveGameRoomChatMSG + "," + Msg, gr.PlayerTwo.ConnectionID);
                 if (gr.Observer != null)
                 {
-                    SendMessageToClient(ServerToClientSignifiers.ReceiveGameRoomChatMSG + ","+ Msg, gr.Observer.ConnectionID);
+                    SendMessageToClient(ServerToClientSignifiers.ReceiveGameRoomChatMSG + "," + Msg, gr.Observer.ConnectionID);
                 }
             }
 
         }
+        else if (signifier == ClientToServerSignifiers.SendOnlyObserverGameRoomChatMSG)
+        {
+            GameRoom gr = GetGameRoomClientId(id);
+            string Msg = csv[1];
+
+            if (gr != null)
+            {
+                //SendMessageToClient(ServerToClientSignifiers.ReceiveGameRoomChatMSG + "," + Msg, id);
+                if (gr.Observer != null)
+                {
+                    if (gr.Observer.ConnectionID == id)
+                    {
+                        SendMessageToClient(ServerToClientSignifiers.ReceiveGameRoomChatMSG + "," + Msg, gr.Observer.ConnectionID);
+                    }
+                    else if (gr.PlayerOne.ConnectionID == id || gr.PlayerTwo.ConnectionID == id)
+                    {
+                        SendMessageToClient(ServerToClientSignifiers.ReceiveGameRoomChatMSG + "," + Msg, gr.Observer.ConnectionID);
+                        SendMessageToClient(ServerToClientSignifiers.ReceiveGameRoomChatMSG + "," + Msg, id);
+                    }
+                }
+                
+            }
+        }
+        else if (signifier == ClientToServerSignifiers.SendOnlyPlayerGameRoomChatMSG)
+        {
+            GameRoom gr = GetGameRoomClientId(id);
+            string Msg = csv[1];
+
+            if (gr != null)
+            {
+                if (gr.PlayerOne.ConnectionID == id)
+                {
+                    SendMessageToClient(ServerToClientSignifiers.ReceiveGameRoomChatMSG + "," + Msg, gr.PlayerTwo.ConnectionID);
+                    SendMessageToClient(ServerToClientSignifiers.ReceiveGameRoomChatMSG + "," + Msg,id);
+                }
+                else if (gr.PlayerTwo.ConnectionID == id)
+                {
+                    SendMessageToClient(ServerToClientSignifiers.ReceiveGameRoomChatMSG + "," + Msg, gr.PlayerOne.ConnectionID);
+                    SendMessageToClient(ServerToClientSignifiers.ReceiveGameRoomChatMSG + "," + Msg, id);
+                }
+                else if (gr.Observer.ConnectionID == id)
+                {
+                    SendMessageToClient(ServerToClientSignifiers.ReceiveGameRoomChatMSG + "," + Msg, gr.PlayerOne.ConnectionID);
+                    SendMessageToClient(ServerToClientSignifiers.ReceiveGameRoomChatMSG + "," + Msg, gr.PlayerTwo.ConnectionID);
+                    SendMessageToClient(ServerToClientSignifiers.ReceiveGameRoomChatMSG + "," + Msg, id);
+
+                }
+
+            }
+        }
+
     }
 
     private GameRoom GetGameRoomClientId (int id) 
@@ -722,8 +773,11 @@ public class NetworkedServer : MonoBehaviour
 
     public const int SendGameRoomChatMSG = 14;
 
+    public const int SendOnlyPlayerGameRoomChatMSG = 15;
 
-  }
+    public const int SendOnlyObserverGameRoomChatMSG = 16;
+
+}
 
 public class ServerToClientSignifiers
 {
