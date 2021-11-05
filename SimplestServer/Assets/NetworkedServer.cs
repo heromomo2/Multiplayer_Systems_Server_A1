@@ -143,6 +143,9 @@ public class NetworkedServer : MonoBehaviour
                 ListOfgamerooms.AddLast(Gr);
 
 
+                SendMessageToClient(ServerToClientSignifiers.ReceiveOpponentName + "," + Gr.PlayerOne.name, Gr.PlayerTwo.ConnectionID);
+                SendMessageToClient(ServerToClientSignifiers.ReceiveOpponentName + "," + Gr.PlayerTwo.name, Gr.PlayerOne.ConnectionID);
+
                 SendMessageToClient(ServerToClientSignifiers.GameStart + ", 2", Gr.PlayerTwo.ConnectionID);
                 SendMessageToClient(ServerToClientSignifiers.GameStart + ", 1", Gr.PlayerOne.ConnectionID);
 
@@ -635,6 +638,40 @@ public class NetworkedServer : MonoBehaviour
             isThisRoom = false;
         }
     }
+    //public void CheckForBrokenGame() 
+    //{
+    //    bool isThisRoom = false;
+    //    GameRoom TempGameRoom;
+
+    //    foreach (GameRoom gr in ListOfgamerooms)
+    //    {
+    //        if (gr.PlayerOne.ConnectionID == null)
+    //        {
+    //            isThisRoom = true;
+    //            TempGameRoom = gr;
+    //        }
+    //        else if (gr.PlayerTwo.ConnectionID == null) 
+    //        {
+    //            isThisRoom = true;
+    //            TempGameRoom = gr;
+    //        }
+    //    }
+
+    //    if (isThisRoom == true)
+    //    {
+    //        if (TempGameRoom.PlayerOne.ConnectionID == null)
+    //        { 
+    //            SendMessageToClient(ServerToClientSignifiers.PlayerDisconnectFromGameRoom + ",0", TempGameRoom.PlayerTwo.ConnectionID);
+    //            isThisRoom = false;
+    //        }
+    //        else if (TempGameRoom.PlayerTwo.ConnectionID == null)
+    //        {
+    //            SendMessageToClient(ServerToClientSignifiers.PlayerDisconnectFromGameRoom + ",0", TempGameRoom.PlayerOne.ConnectionID);
+    //            isThisRoom = false;
+    //        }
+
+    //    }
+    //}
     public void LogOutPlayer(int recConnectionID)
     {
         PlayerAccount TempPlayerAccount = new PlayerAccount();
@@ -829,5 +866,7 @@ public class ServerToClientSignifiers
     public const int StopObservingComplete = 24;
 
     public const int ReceiveGameRoomChatMSG = 25;
+
+    public const int ReceiveOpponentName = 26;
 }
     
