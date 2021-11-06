@@ -10,3 +10,4 @@
 1,lazyTeacher,lt
 1,g,g
 1,j,j
+1,h,h
