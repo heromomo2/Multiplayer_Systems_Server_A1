@@ -75,7 +75,7 @@ public class NetworkedServer : MonoBehaviour
                 Debug.Log("Disconnection, " + recConnectionID);
 
                 DisconnectFromGame(recConnectionID);
-
+                PlayerDisconnectFromQueueGame(recConnectionID);// if a player disconnect durring queue.
 
                 PlayerDisconnect(recConnectionID);
                 SendClearListofPlayersToClient();
@@ -139,19 +139,22 @@ public class NetworkedServer : MonoBehaviour
             else
             {
                 // so what if the player with their id being stored in PlayWaitingForMatchWithID has left???
-                GameRoom Gr = new GameRoom(PlayerWaitingForMatch, new PlayerAccount(csv[1], id));
-                ListOfgamerooms.AddLast(Gr);
+
+                if (PlayerWaitingForMatch.ConnectionID != -1) // check if first player in queue disconnect
+                {
+                    GameRoom Gr = new GameRoom(PlayerWaitingForMatch, new PlayerAccount(csv[1], id));
+                    ListOfgamerooms.AddLast(Gr);
 
 
-                SendMessageToClient(ServerToClientSignifiers.ReceiveOpponentName + "," + Gr.PlayerOne.name, Gr.PlayerTwo.ConnectionID);
-                SendMessageToClient(ServerToClientSignifiers.ReceiveOpponentName + "," + Gr.PlayerTwo.name, Gr.PlayerOne.ConnectionID);
+                    SendMessageToClient(ServerToClientSignifiers.ReceiveOpponentName + "," + Gr.PlayerOne.name, Gr.PlayerTwo.ConnectionID);
+                    SendMessageToClient(ServerToClientSignifiers.ReceiveOpponentName + "," + Gr.PlayerTwo.name, Gr.PlayerOne.ConnectionID);
 
-                SendMessageToClient(ServerToClientSignifiers.GameStart + ", 2", Gr.PlayerTwo.ConnectionID);
-                SendMessageToClient(ServerToClientSignifiers.GameStart + ", 1", Gr.PlayerOne.ConnectionID);
+                    SendMessageToClient(ServerToClientSignifiers.GameStart + ", 2", Gr.PlayerTwo.ConnectionID);
+                    SendMessageToClient(ServerToClientSignifiers.GameStart + ", 1", Gr.PlayerOne.ConnectionID);
 
-                //PlayerWaitingForMatchWithID = -1;
-                PlayerWaitingForMatch = new PlayerAccount("TempPlayer", -1);
-
+                    //PlayerWaitingForMatchWithID = -1;
+                    PlayerWaitingForMatch = new PlayerAccount("TempPlayer", -1);
+                }
             }
         }
         else if (signifier == ClientToServerSignifiers.TicTacToesSomethingSomthing)
@@ -247,19 +250,25 @@ public class NetworkedServer : MonoBehaviour
             {
                 GameRoom gr = GetGameRoomClientByUserName(csv[1]);
 
-
-
-                if (gr.PlayerOne.name == csv[1])
+                if (gr.Observer == null )
                 {
-                    SendMessageToClient(ServerToClientSignifiers.YouareBeingObserved + ",0", gr.PlayerOne.ConnectionID);
-                    SendMessageToClient(ServerToClientSignifiers.SearchGameRoomsByUserNameComplete + "," + gr.PlayerTwo.name.ToString(), id);
-                    gr.Observer = new PlayerAccount("Observer", id);
+
+                    if (gr.PlayerOne.name == csv[1])
+                    {
+                        SendMessageToClient(ServerToClientSignifiers.YouareBeingObserved + ",0", gr.PlayerOne.ConnectionID);
+                        SendMessageToClient(ServerToClientSignifiers.SearchGameRoomsByUserNameComplete + "," + gr.PlayerTwo.name.ToString(), id);
+                        gr.Observer = new PlayerAccount("Observer", id);
+                    }
+                    else
+                    {
+                        SendMessageToClient(ServerToClientSignifiers.YouareBeingObserved + ",0", gr.PlayerTwo.ConnectionID);
+                        SendMessageToClient(ServerToClientSignifiers.SearchGameRoomsByUserNameComplete + "," + gr.PlayerOne.name.ToString(), id);
+                        gr.Observer = new PlayerAccount("Observer", id);
+                    } 
                 }
-                else
+                else 
                 {
-                    SendMessageToClient(ServerToClientSignifiers.YouareBeingObserved + ",0", gr.PlayerTwo.ConnectionID);
-                    SendMessageToClient(ServerToClientSignifiers.SearchGameRoomsByUserNameComplete + "," + gr.PlayerOne.name.ToString(), id);
-                    gr.Observer = new PlayerAccount("Observer", id);
+                    SendMessageToClient(ServerToClientSignifiers.SearchGameRoomsByUserNameSizeFailed + ",0" , id);
                 }
             }
         }
@@ -642,7 +651,16 @@ public class NetworkedServer : MonoBehaviour
             isThisRoom = false;
         }
     }
-   
+
+
+    public void PlayerDisconnectFromQueueGame(int recConnectionID)
+    {
+        if (PlayerWaitingForMatch.ConnectionID == recConnectionID)
+        {
+            PlayerWaitingForMatch.ConnectionID = -1;
+            PlayerWaitingForMatch.name = "TempPlayer";
+        }
+    }
     public void LogOutPlayer(int recConnectionID)
     {
         PlayerAccount TempPlayerAccount = new PlayerAccount();
@@ -840,6 +858,6 @@ public class ServerToClientSignifiers
 
     public const int ReceiveOpponentName = 26;
 
-   
+    public const int SearchGameRoomsByUserNameSizeFailed = 27;
 }
     
