@@ -170,23 +170,12 @@ public class NetworkedServer : MonoBehaviour
                     SendMessageToClient(ServerToClientSignifiers.OpponentPlayed + "," + csv[1], gr.PlayerTwo.ConnectionID);
 
                     SendMessageToClient(ServerToClientSignifiers.WaitForOppentMoved + ",0", gr.PlayerOne.ConnectionID);// make the play wait
-
-
-                    Debug.LogWarning("-> Player name : " + gr.PlayerOne.name + " Position: " + csv[1]);
-                    // storing match data here:
-                    gr.MatchData.AddLast(new MatchData( int.Parse(csv[1]), gr.PlayerOne.name));
-                    
                 }
                 else
                 {
                     SendMessageToClient(ServerToClientSignifiers.OpponentPlayed + "," + csv[1], gr.PlayerOne.ConnectionID);
 
                     SendMessageToClient(ServerToClientSignifiers.WaitForOppentMoved + ",0", gr.PlayerTwo.ConnectionID);// make the play wait
-
-
-                    Debug.LogWarning("-> Player name : " + gr.PlayerTwo.name +" Position: " + csv[1]);
-                    // storing match data here:
-                    gr.MatchData.AddLast(new MatchData(int.Parse(csv[1]), gr.PlayerTwo.name));
                 }
                 //Bug:we never clean up our GameRooms, even One players leaves
                 // we need to 
@@ -214,9 +203,6 @@ public class NetworkedServer : MonoBehaviour
 
                 RematchAgree[0] = 0;
                 RematchAgree[1] = 0;
-
-                // clear out match data for new game
-                gr.MatchData.Clear();
             }
 
         }
@@ -405,12 +391,6 @@ public class NetworkedServer : MonoBehaviour
                     {
                         pa.recordMatchNames.AddLast(csv[2]);
                         Debug.Log("Player Success to create FileNameUnique for record");
-
-
-                        // Store the MatchData into a text file:
-                        GameRoom gr = GetGameRoomClientId(id);
-                        SaveMatchData(gr,csv[2]);
-                        SendMessageToClient(ServerToClientSignifiers.CreateARecoredSuccess + ",0", id);
                         break;
                     }
                 }
@@ -418,7 +398,6 @@ public class NetworkedServer : MonoBehaviour
             else 
             {
                 Debug.Log("Player fail to create FileNameUnique for record");
-                SendMessageToClient(ServerToClientSignifiers.CreateARecoredFail+ ",0", id);
             }
             SavePlayerManagementFile();
             //LoadPlayerManagementFile();
@@ -466,7 +445,7 @@ public class NetworkedServer : MonoBehaviour
             {
                 foreach (string rmn in pa.recordMatchNames)
                 {
-                    sw.WriteLine(PlayerRecordManagementFile.PlayerRecordIDSignifier + "," + rmn);
+                    sw.WriteLine(PlayerRecordManagementFile.PlayerRecordIDSinifier + "," + rmn);
                 }
             }
         }
@@ -492,7 +471,7 @@ public class NetworkedServer : MonoBehaviour
                     tempPlayer = new PlayerAccount(csv[1], csv[2]);
                     playerAccounts.AddLast(tempPlayer);
                 }
-                else if (signifier == PlayerRecordManagementFile.PlayerRecordIDSignifier) 
+                else if (signifier == PlayerRecordManagementFile.PlayerRecordIDSinifier) 
                 {
                     tempPlayer.recordMatchNames.AddLast( csv[1]);
                 }
@@ -501,15 +480,21 @@ public class NetworkedServer : MonoBehaviour
     }
 
 
-    public void SaveMatchData(GameRoom gr, string FileName)
-    {
-        StreamWriter sw = new StreamWriter(Application.dataPath + Path.DirectorySeparatorChar + FileName+".txt");
-        foreach (MatchData matchData in gr.MatchData)
-        {
-            sw.WriteLine(PlayerRecordManagementFile.MatchDataIDSignifier + "," + matchData.Playername+ "," + matchData.Positoin);
-        }
-        sw.Close();
-    }
+    //public void WritePlayerRecordManagementFile()
+    //{
+    //    StreamWriter sw = new StreamWriter(Application.dataPath + Path.DirectorySeparatorChar + "PlayerRcecordManagementFile.txt");
+    //    foreach (PlayerAccount pa in playerAccounts)
+    //    {
+    //        sw.WriteLine(PlayerRecordManagementFile.PlayerRecordIDSinifier + "," + pa.name );
+    //        //if (pa.recordMatchNames != null && pa.recordMatchNames.Count == 0) 
+    //        //{
+    //        //    foreach (string rmn in pa.recordMatchNames) {
+    //        //        sw.WriteLine(PlayerRecordManagementFile.PlayerRecordIDSinifier + "," + rmn); 
+    //        //    }
+    //        //}
+    //    }
+    //    sw.Close();
+    //}
 
     //public void ReadPlayerRecordManagementFile()
     //{
@@ -525,7 +510,7 @@ public class NetworkedServer : MonoBehaviour
     //            if (signifier == PlayerRecordManagementFile.PlayerRecordIDSinifier)
     //            {
 
-
+                    
     //            }
     //        }
     //    }
@@ -829,7 +814,7 @@ public class NetworkedServer : MonoBehaviour
         
         public PlayerAccount  PlayerOne, PlayerTwo;
         public PlayerAccount Observer = null ;
-        public LinkedList<MatchData> MatchData;
+        public LinkedList<int> MatchData;
         public GameRoom()
         {
 
@@ -839,7 +824,7 @@ public class NetworkedServer : MonoBehaviour
         {
             PlayerOne = PlayerID1;
             PlayerTwo = PlayerID2;
-            MatchData = new LinkedList<MatchData>();
+            MatchData = new LinkedList<int>();
         }
         public void AddObserverGameRoom(PlayerAccount newObserver)
         {
@@ -848,18 +833,7 @@ public class NetworkedServer : MonoBehaviour
 
     }
 
-    public class MatchData
-    {
-       public int Positoin;
-       public string Playername;
 
-        public MatchData(int position, string playerName)
-        {
-            Positoin = position;
-            Playername = playerName;
-        }
-
-    }
 
     public class PlayerAccount
     {
@@ -893,9 +867,6 @@ public class NetworkedServer : MonoBehaviour
     }
 
 }
-
-
-
 
 public class ClientToServerSignifiers
   {
@@ -934,7 +905,6 @@ public class ClientToServerSignifiers
     public const int CreateARecored = 17;
 
 }
-
 
 public class ServerToClientSignifiers
 {
@@ -990,17 +960,13 @@ public class ServerToClientSignifiers
     public const int ReceiveOpponentName = 26;
 
     public const int SearchGameRoomsByUserNameSizeFailed = 27;
-
-    public const int CreateARecoredSuccess = 28;
-
-    public const int CreateARecoredFail = 29;
 }
 
 public class PlayerRecordManagementFile 
 {
-    public const int PlayerRecordIDSignifier = 50;
+    public const int PlayerRecordIDSinifier = 50;
 
-    public const int MatchDataIDSignifier = 51;
+    public const int RecordIDSinifier = 51;
 }
 
 

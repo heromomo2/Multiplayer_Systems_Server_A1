@@ -11,13 +11,11 @@
 50,8
 50,u
 50,pop
-50,GASP
 1,Carlo,Green
 1,pppp,hhh
 1,n,n
 1,lazyTeacher,lt
 1,g,g
-50,Lost boy
 1,j,j
 1,h,h
 1,carlo,c
