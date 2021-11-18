@@ -19,7 +19,7 @@ public class NetworkedServer : MonoBehaviour
     LinkedList<GameRoom> ListOfgamerooms;
     LinkedList<PlayerAccount> playerAccounts;
     LinkedList<PlayerAccount> ListOfPlayerConnected;
-    LinkedList<string> PlayerRecordManagerFile;
+
     int PlayerWaitingForMatchWithID = -1;
     PlayerAccount PlayerWaitingForMatch = new PlayerAccount("TempPlayer", -1);
 
@@ -37,8 +37,6 @@ public class NetworkedServer : MonoBehaviour
         ListOfgamerooms = new LinkedList<GameRoom>();
         ListOfPlayerConnected = new LinkedList<PlayerAccount>();
         playerAccounts = new LinkedList<PlayerAccount>();
-        PlayerRecordManagerFile = new LinkedList<string>();
-
         // read in player accounts from wherever
         LoadPlayerManagementFile();
     }
@@ -252,7 +250,7 @@ public class NetworkedServer : MonoBehaviour
             {
                 GameRoom gr = GetGameRoomClientByUserName(csv[1]);
 
-                if (gr.Observer == null)
+                if (gr.Observer == null )
                 {
 
                     if (gr.PlayerOne.name == csv[1])
@@ -266,11 +264,11 @@ public class NetworkedServer : MonoBehaviour
                         SendMessageToClient(ServerToClientSignifiers.YouareBeingObserved + ",0", gr.PlayerTwo.ConnectionID);
                         SendMessageToClient(ServerToClientSignifiers.SearchGameRoomsByUserNameComplete + "," + gr.PlayerOne.name.ToString(), id);
                         gr.Observer = new PlayerAccount("Observer", id);
-                    }
+                    } 
                 }
-                else
+                else 
                 {
-                    SendMessageToClient(ServerToClientSignifiers.SearchGameRoomsByUserNameSizeFailed + ",0", id);
+                    SendMessageToClient(ServerToClientSignifiers.SearchGameRoomsByUserNameSizeFailed + ",0" , id);
                 }
             }
         }
@@ -325,7 +323,7 @@ public class NetworkedServer : MonoBehaviour
                         SendMessageToClient(ServerToClientSignifiers.ReceiveGameRoomChatMSG + "," + Msg, id);
                     }
                 }
-
+                
             }
         }
         else if (signifier == ClientToServerSignifiers.SendOnlyPlayerGameRoomChatMSG)
@@ -338,7 +336,7 @@ public class NetworkedServer : MonoBehaviour
                 if (gr.PlayerOne.ConnectionID == id)
                 {
                     SendMessageToClient(ServerToClientSignifiers.ReceiveGameRoomChatMSG + "," + Msg, gr.PlayerTwo.ConnectionID);
-                    SendMessageToClient(ServerToClientSignifiers.ReceiveGameRoomChatMSG + "," + Msg, id);
+                    SendMessageToClient(ServerToClientSignifiers.ReceiveGameRoomChatMSG + "," + Msg,id);
                 }
                 else if (gr.PlayerTwo.ConnectionID == id)
                 {
@@ -354,53 +352,6 @@ public class NetworkedServer : MonoBehaviour
                 }
 
             }
-        }
-        else if (signifier == ClientToServerSignifiers.CreateARecored)
-        {
-            Debug.Log("Player name: " + csv[1] + "RecordMatchName: " + csv[2]);
-            bool isFileNameUnique = false; 
-            
-            foreach (PlayerAccount pa in playerAccounts)
-            {
-                //if(pa.name == csv[1]) 
-                //{
-                //     pa.recordMatchNames.AddLast(csv[2]);
-                //}
-
-                if (pa.recordMatchNames != null && pa.recordMatchNames.Count != 0) 
-                {
-                    foreach(string rmn in pa.recordMatchNames) 
-                    {
-                        if (csv[2] == rmn) 
-                        {
-                            isFileNameUnique = false;
-                            break;
-                        }
-                        else 
-                        {
-                            isFileNameUnique = true;
-                        }
-                    }
-                }
-            }
-            if (isFileNameUnique == true)
-            {
-                foreach (PlayerAccount pa in playerAccounts)
-                {
-                    if (pa.name == csv[1])
-                    {
-                        pa.recordMatchNames.AddLast(csv[2]);
-                        Debug.Log("Player Success to create FileNameUnique for record");
-                        break;
-                    }
-                }
-            }
-            else 
-            {
-                Debug.Log("Player fail to create FileNameUnique for record");
-            }
-            SavePlayerManagementFile();
-            //LoadPlayerManagementFile();
         }
 
     }
@@ -441,13 +392,6 @@ public class NetworkedServer : MonoBehaviour
         foreach (PlayerAccount pa in playerAccounts)
         {
             sw.WriteLine(PlayerAccount.PlayerIdSinifier + "," + pa.name + "," + pa.password);
-            if (pa.recordMatchNames != null && pa.recordMatchNames.Count != 0)
-            {
-                foreach (string rmn in pa.recordMatchNames)
-                {
-                    sw.WriteLine(PlayerRecordManagementFile.PlayerRecordIDSinifier + "," + rmn);
-                }
-            }
         }
         sw.Close();
     }
@@ -458,8 +402,6 @@ public class NetworkedServer : MonoBehaviour
         {
             StreamReader sr = new StreamReader(Application.dataPath + Path.DirectorySeparatorChar + "PlayerManagementFile.txt");
             string line;
-            PlayerAccount tempPlayer = new PlayerAccount("TempName", "TempPass");
-
             while ((line = sr.ReadLine()) != null)
             {
                 string[] csv = line.Split(',');
@@ -468,54 +410,11 @@ public class NetworkedServer : MonoBehaviour
                 if (signifier == PlayerAccount.PlayerIdSinifier)
                 {
 
-                    tempPlayer = new PlayerAccount(csv[1], csv[2]);
-                    playerAccounts.AddLast(tempPlayer);
-                }
-                else if (signifier == PlayerRecordManagementFile.PlayerRecordIDSinifier) 
-                {
-                    tempPlayer.recordMatchNames.AddLast( csv[1]);
+                    playerAccounts.AddLast(new PlayerAccount ( csv[1], csv[2] ) );
                 }
             }
         }
     }
-
-
-    //public void WritePlayerRecordManagementFile()
-    //{
-    //    StreamWriter sw = new StreamWriter(Application.dataPath + Path.DirectorySeparatorChar + "PlayerRcecordManagementFile.txt");
-    //    foreach (PlayerAccount pa in playerAccounts)
-    //    {
-    //        sw.WriteLine(PlayerRecordManagementFile.PlayerRecordIDSinifier + "," + pa.name );
-    //        //if (pa.recordMatchNames != null && pa.recordMatchNames.Count == 0) 
-    //        //{
-    //        //    foreach (string rmn in pa.recordMatchNames) {
-    //        //        sw.WriteLine(PlayerRecordManagementFile.PlayerRecordIDSinifier + "," + rmn); 
-    //        //    }
-    //        //}
-    //    }
-    //    sw.Close();
-    //}
-
-    //public void ReadPlayerRecordManagementFile()
-    //{
-    //    if (File.Exists(Application.dataPath + Path.DirectorySeparatorChar + "PlayerRcecordManagementFile.txt"))
-    //    {
-    //        StreamReader sr = new StreamReader(Application.dataPath + Path.DirectorySeparatorChar + "PlayerRcecordManagementFile.txt");
-    //        string line;
-    //        while ((line = sr.ReadLine()) != null)
-    //        {
-    //            string[] csv = line.Split(',');
-
-    //            int signifier = int.Parse(csv[0]);
-    //            if (signifier == PlayerRecordManagementFile.PlayerRecordIDSinifier)
-    //            {
-
-                    
-    //            }
-    //        }
-    //    }
-    //}
-
 
 
     public void CreatedAccount(string userName, string Password, int id) 
@@ -811,20 +710,23 @@ public class NetworkedServer : MonoBehaviour
 
     public class GameRoom
     {
-        
+        //public string RoomName;
+        //public PlayerAccount  playerOneID1, PlayerTwoID2;
         public PlayerAccount  PlayerOne, PlayerTwo;
         public PlayerAccount Observer = null ;
-        public LinkedList<int> MatchData;
         public GameRoom()
         {
 
         }
-      
+        //public GameRoom( int PlayerID1, int PlayerID2)
+        //{
+        //    playerOneID = PlayerID1;
+        //    PlayerTwoID = PlayerID2;
+        //}
         public GameRoom(PlayerAccount PlayerID1, PlayerAccount PlayerID2)
         {
             PlayerOne = PlayerID1;
-            PlayerTwo = PlayerID2;
-            MatchData = new LinkedList<int>();
+             PlayerTwo = PlayerID2;
         }
         public void AddObserverGameRoom(PlayerAccount newObserver)
         {
@@ -840,13 +742,12 @@ public class NetworkedServer : MonoBehaviour
         public const int PlayerIdSinifier = 1;
         public string name, password;
         public int ConnectionID;
-        public LinkedList<string> recordMatchNames;
 
         public PlayerAccount(string Name, string PassWord)
         {
             name = Name;
             password = PassWord;
-            recordMatchNames = new LinkedList<string>(); 
+
         }
         public PlayerAccount(string Name, string PassWord, int ConId)
         {
@@ -868,7 +769,7 @@ public class NetworkedServer : MonoBehaviour
 
 }
 
-public class ClientToServerSignifiers
+  public class ClientToServerSignifiers
   {
     public const int CreateAcount = 1;
 
@@ -901,8 +802,6 @@ public class ClientToServerSignifiers
     public const int SendOnlyPlayerGameRoomChatMSG = 15;
 
     public const int SendOnlyObserverGameRoomChatMSG = 16;
-
-    public const int CreateARecored = 17;
 
 }
 
@@ -961,13 +860,4 @@ public class ServerToClientSignifiers
 
     public const int SearchGameRoomsByUserNameSizeFailed = 27;
 }
-
-public class PlayerRecordManagementFile 
-{
-    public const int PlayerRecordIDSinifier = 50;
-
-    public const int RecordIDSinifier = 51;
-}
-
-
-
+    
