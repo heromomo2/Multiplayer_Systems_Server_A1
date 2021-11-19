@@ -174,8 +174,8 @@ public class NetworkedServer : MonoBehaviour
 
                     Debug.LogWarning("-> Player name : " + gr.PlayerOne.name + " Position: " + csv[1]);
                     // storing match data here:
-                    gr.MatchData.AddLast(new MatchData( int.Parse(csv[1]), gr.PlayerOne.name));
-                    
+                    gr.MatchData.AddLast(new MatchData( gr.PlayerOne.name,int.Parse(csv[1]), 1));
+
                 }
                 else
                 {
@@ -184,9 +184,9 @@ public class NetworkedServer : MonoBehaviour
                     SendMessageToClient(ServerToClientSignifiers.WaitForOppentMoved + ",0", gr.PlayerTwo.ConnectionID);// make the play wait
 
 
-                    Debug.LogWarning("-> Player name : " + gr.PlayerTwo.name +" Position: " + csv[1]);
+                    Debug.LogWarning("-> Player name : " + gr.PlayerTwo.name + " Position: " + csv[1]);
                     // storing match data here:
-                    gr.MatchData.AddLast(new MatchData(int.Parse(csv[1]), gr.PlayerTwo.name));
+                    gr.MatchData.AddLast(new MatchData(gr.PlayerTwo.name , int.Parse(csv[1]), 2 ));
                 }
                 //Bug:we never clean up our GameRooms, even One players leaves
                 // we need to 
@@ -372,8 +372,8 @@ public class NetworkedServer : MonoBehaviour
         else if (signifier == ClientToServerSignifiers.CreateARecored)
         {
             Debug.Log("Player name: " + csv[1] + "RecordMatchName: " + csv[2]);
-            bool isFileNameUnique = false; 
-            
+            bool isFileNameUnique = false;
+
             foreach (PlayerAccount pa in playerAccounts)
             {
                 //if(pa.name == csv[1]) 
@@ -381,16 +381,16 @@ public class NetworkedServer : MonoBehaviour
                 //     pa.recordMatchNames.AddLast(csv[2]);
                 //}
 
-                if (pa.recordMatchNames != null && pa.recordMatchNames.Count != 0) 
+                if (pa.recordMatchNames != null && pa.recordMatchNames.Count != 0)
                 {
-                    foreach(string rmn in pa.recordMatchNames) 
+                    foreach (string rmn in pa.recordMatchNames)
                     {
-                        if (csv[2] == rmn) 
+                        if (csv[2] == rmn)
                         {
                             isFileNameUnique = false;
                             break;
                         }
-                        else 
+                        else
                         {
                             isFileNameUnique = true;
                         }
@@ -409,21 +409,49 @@ public class NetworkedServer : MonoBehaviour
 
                         // Store the MatchData into a text file:
                         GameRoom gr = GetGameRoomClientId(id);
-                        SaveMatchData(gr,csv[2]);
+                        SaveMatchData(gr, csv[2]);
                         SendMessageToClient(ServerToClientSignifiers.CreateARecoredSuccess + ",0", id);
                         break;
                     }
                 }
             }
-            else 
+            else
             {
                 Debug.Log("Player fail to create FileNameUnique for record");
-                SendMessageToClient(ServerToClientSignifiers.CreateARecoredFail+ ",0", id);
+                SendMessageToClient(ServerToClientSignifiers.CreateARecoredFail + ",0", id);
             }
             SavePlayerManagementFile();
             //LoadPlayerManagementFile();
         }
+        else if (signifier == ClientToServerSignifiers.AskForAllRecoreds)
+        {
+            foreach (PlayerAccount pa in playerAccounts)
+            {
+                if (pa.name == csv[1])
+                {
+                    SendMessageToClient(ServerToClientSignifiers.StartSendAllRecoredsName + ",0", id);
+                    foreach (string rmd in pa.recordMatchNames)
+                    {
+                        SendMessageToClient(ServerToClientSignifiers.SendAllRecoredsNameData + "," + rmd, id);
+                    }
+                    SendMessageToClient(ServerToClientSignifiers.DoneSendAllRecoredsName + ",0", id);
+                }
+            }
+        }
+        else if (signifier == ClientToServerSignifiers.AskForThisRecoredMatchData) 
+        {
+        
+            LinkedList<MatchData> matchDatas = new LinkedList<MatchData>();
+            ReadSaveMatchData(csv[1], matchDatas);
+            SendMessageToClient(ServerToClientSignifiers.StartSendThisRecoredMatchData + ",0", id);
+            foreach (MatchData md in matchDatas)
+            {
+                SendMessageToClient(ServerToClientSignifiers.DoneSendAllThisRecoredMatchData + "," + md.Positoin +","+ md.Playername, id);
 
+            }
+            SendMessageToClient(ServerToClientSignifiers.DoneSendAllThisRecoredMatchData + ",0", id);
+
+        }
     }
 
     private GameRoom GetGameRoomClientId (int id) 
@@ -506,30 +534,30 @@ public class NetworkedServer : MonoBehaviour
         StreamWriter sw = new StreamWriter(Application.dataPath + Path.DirectorySeparatorChar + FileName+".txt");
         foreach (MatchData matchData in gr.MatchData)
         {
-            sw.WriteLine(PlayerRecordManagementFile.MatchDataIDSignifier + "," + matchData.Playername+ "," + matchData.Positoin);
+            sw.WriteLine(PlayerRecordManagementFile.MatchDataIDSignifier + "," + matchData.Playername+ "," + matchData.Positoin + "," + matchData.PlayerSymbol);
         }
         sw.Close();
     }
 
-    //public void ReadPlayerRecordManagementFile()
-    //{
-    //    if (File.Exists(Application.dataPath + Path.DirectorySeparatorChar + "PlayerRcecordManagementFile.txt"))
-    //    {
-    //        StreamReader sr = new StreamReader(Application.dataPath + Path.DirectorySeparatorChar + "PlayerRcecordManagementFile.txt");
-    //        string line;
-    //        while ((line = sr.ReadLine()) != null)
-    //        {
-    //            string[] csv = line.Split(',');
+    public void ReadSaveMatchData(string FileName, LinkedList<MatchData> matchDatas)
+    {
+        if (File.Exists(Application.dataPath + Path.DirectorySeparatorChar + FileName + ".txt"))
+        {
+            StreamReader sr = new StreamReader(Application.dataPath + Path.DirectorySeparatorChar + FileName + ".txt");
+            string line;
+            while ((line = sr.ReadLine()) != null)
+            {
+                string[] csv = line.Split(',');
 
-    //            int signifier = int.Parse(csv[0]);
-    //            if (signifier == PlayerRecordManagementFile.PlayerRecordIDSinifier)
-    //            {
+                int signifier = int.Parse(csv[0]);
+                if (signifier == PlayerRecordManagementFile.MatchDataIDSignifier)
+                {
 
-
-    //            }
-    //        }
-    //    }
-    //}
+                    matchDatas.AddLast(new MatchData(csv[1], int.Parse(csv[2]), int.Parse(csv[3])));
+                }
+            }
+        }
+    }
 
 
 
@@ -850,13 +878,15 @@ public class NetworkedServer : MonoBehaviour
 
     public class MatchData
     {
-       public int Positoin;
-       public string Playername;
+        public int Positoin;
+        public int PlayerSymbol;
+        public string Playername;
 
-        public MatchData(int position, string playerName)
+        public MatchData(string playerName,int position, int playerSymbol)
         {
             Positoin = position;
             Playername = playerName;
+            PlayerSymbol = playerSymbol;
         }
 
     }
@@ -933,6 +963,10 @@ public class ClientToServerSignifiers
 
     public const int CreateARecored = 17;
 
+    public const int AskForAllRecoreds = 18;
+
+    public const int AskForThisRecoredMatchData = 19;
+
 }
 
 
@@ -994,6 +1028,18 @@ public class ServerToClientSignifiers
     public const int CreateARecoredSuccess = 28;
 
     public const int CreateARecoredFail = 29;
+
+    public const int StartSendAllRecoredsName = 30;
+
+    public const int SendAllRecoredsNameData = 31;
+
+    public const int DoneSendAllRecoredsName = 32;
+
+    public const int StartSendThisRecoredMatchData = 33;
+
+    public const int SendAllThisRecoredMatchData = 34;
+
+    public const int DoneSendAllThisRecoredMatchData = 35;
 }
 
 public class PlayerRecordManagementFile 

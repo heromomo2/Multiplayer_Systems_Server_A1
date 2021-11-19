@@ -58,6 +58,7 @@
   <ItemGroup>
     <None Include="Assets\PlayerManagementFile.txt" />
     <None Include="Assets\GASP.txt" />
+    <None Include="Assets\weed.txt" />
     <None Include="Assets\Lost boy.txt" />
   </ItemGroup>
   <ItemGroup>
