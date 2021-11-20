@@ -381,19 +381,27 @@ public class NetworkedServer : MonoBehaviour
                 //     pa.recordMatchNames.AddLast(csv[2]);
                 //}
 
-                if (pa.recordMatchNames != null && pa.recordMatchNames.Count != 0)
+                if (pa.recordMatchNames != null )
                 {
-                    foreach (string rmn in pa.recordMatchNames)
+                    // if  there account with a record
+                    if (pa.recordMatchNames.Count != 0)
                     {
-                        if (csv[2] == rmn)
+                        foreach (string rmn in pa.recordMatchNames)
                         {
-                            isFileNameUnique = false;
-                            break;
+                            if (csv[2] == rmn)
+                            {
+                                isFileNameUnique = false;
+                                break;
+                            }
+                            else
+                            {
+                                isFileNameUnique = true;
+                            }
                         }
-                        else
-                        {
-                            isFileNameUnique = true;
-                        }
+                    }/// if there account with no record
+                    else if (pa.recordMatchNames.Count == 0) 
+                    {
+                        isFileNameUnique = true;
                     }
                 }
             }
@@ -429,12 +437,19 @@ public class NetworkedServer : MonoBehaviour
             {
                 if (pa.name == csv[1])
                 {
-                    SendMessageToClient(ServerToClientSignifiers.StartSendAllRecoredsName + ",0", id);
-                    foreach (string rmd in pa.recordMatchNames)
+                    if (pa.recordMatchNames.Count != 0) 
                     {
-                        SendMessageToClient(ServerToClientSignifiers.SendAllRecoredsNameData + "," + rmd, id);
+                        SendMessageToClient(ServerToClientSignifiers.StartSendAllRecoredsName + ",0", id);
+                        foreach (string rmd in pa.recordMatchNames)
+                        {
+                            SendMessageToClient(ServerToClientSignifiers.SendAllRecoredsNameData + "," + rmd, id);
+                        }
+                        SendMessageToClient(ServerToClientSignifiers.DoneSendAllRecoredsName + ",0", id); 
                     }
-                    SendMessageToClient(ServerToClientSignifiers.DoneSendAllRecoredsName + ",0", id);
+                    else 
+                    {
+                        // this player don't have a any match data/ record name
+                    }
                 }
             }
         }
@@ -446,7 +461,7 @@ public class NetworkedServer : MonoBehaviour
             SendMessageToClient(ServerToClientSignifiers.StartSendThisRecoredMatchData + ",0", id);
             foreach (MatchData md in matchDatas)
             {
-                SendMessageToClient(ServerToClientSignifiers.DoneSendAllThisRecoredMatchData + "," + md.Positoin +","+ md.Playername, id);
+                SendMessageToClient(ServerToClientSignifiers.SendAllThisRecoredMatchData+ "," + md.Playername +","+ md.Positoin + "," + md.PlayerSymbol, id);
 
             }
             SendMessageToClient(ServerToClientSignifiers.DoneSendAllThisRecoredMatchData + ",0", id);
