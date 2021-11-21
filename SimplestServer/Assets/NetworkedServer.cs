@@ -449,6 +449,7 @@ public class NetworkedServer : MonoBehaviour
                     else 
                     {
                         // this player don't have a any match data/ record name
+                        SendMessageToClient(ServerToClientSignifiers.NoRecordsNamefound + ",0", id);
                     }
                 }
             }
@@ -1055,6 +1056,8 @@ public class ServerToClientSignifiers
     public const int SendAllThisRecoredMatchData = 34;
 
     public const int DoneSendAllThisRecoredMatchData = 35;
+
+    public const int NoRecordsNamefound = 36;
 }
 
 public class PlayerRecordManagementFile 

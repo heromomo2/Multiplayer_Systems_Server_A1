@@ -6,11 +6,19 @@
 50,test02
 1,Carlo,Green
 1,p,p
+50,TaskNA3
+50,TaskOA!
 1,n,n
 1,lazyTeacher,lt
 1,g,g
 1,j,j
+50,TaskNA2
+50,TaskOA2
 1,h,h
+50, taskna1
 1,carlo,c
 50,test01
 50,test03
+1,eman,e
+50,TaskNA4
+50,TaskOA3
