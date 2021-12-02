@@ -62,9 +62,11 @@
     <None Include="Assets\TaskNA3.txt" />
     <None Include="Assets\TaskOA!.txt" />
     <None Include="Assets\TaskNA2.txt" />
+    <None Include="Assets\yyyyyy.txt" />
     <None Include="Assets\test03.txt" />
     <None Include="Assets\TaskOA2.txt" />
     <None Include="Assets\test01.txt" />
+    <None Include="Assets\BigScreen.txt" />
     <None Include="Assets\TaskNA4.txt" />
     <None Include="Assets\TaskOA3.txt" />
   </ItemGroup>

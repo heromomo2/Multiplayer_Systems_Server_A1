@@ -18,17 +18,22 @@ public class NetworkedServer : MonoBehaviour
 
     #region MyGlobalVariables
    
-
+    // -list of game rooms
     LinkedList<GameRoom> game_rooms;
 
+    // -list of exsting players
     LinkedList<PlayerAccount> player_accounts;
 
+    // -list of players In Public Chat room
     LinkedList<PlayerAccount> active_players_connected_global_chat;
 
-    LinkedList<string> PlayerRecordManagerFile;
+    //LinkedList<string> PlayerRecordManagerFile;
 
-    int player_waiting_for_match_with_id = -1;
+    // 
+    //int player_waiting_for_match_with_id = -1;
 
+    //- use in Queue system bed
+    //- use Global Temporary A player
     PlayerAccount player_waiting_for_match = new PlayerAccount("TempPlayer", -1);
     #endregion 
 
@@ -93,15 +98,22 @@ public class NetworkedServer : MonoBehaviour
             case NetworkEventType.DisconnectEvent:
                 Debug.Log("Disconnection, " + recConnectionID);
 
-                DisconnectFromGame(recConnectionID);
+                //DisconnectFromGame(recConnectionID);
 
-                PlayerDisconnectFromQueueGame(recConnectionID);// if a player disconnect durring queue.
+                // PlayerDisconnectFromQueueGame(recConnectionID);// if a player disconnect durring queue.
 
-                PlayerDisconnect(recConnectionID);
+                //PlayerDisconnectionFromPublicChat(recConnectionID);
 
-                SendClearListofPlayersToClient();
+                //SendClearListofPlayersToClient();
 
-                SendToListofPlayersToClient();
+
+                //DisconnectFromGame(recConnectionID);
+
+                
+
+                GeneralDisconnected(recConnectionID);
+
+                
 
                 break;
         }
@@ -125,30 +137,192 @@ public class NetworkedServer : MonoBehaviour
 
         if (signifier == ClientToServerSignifiers.CreateAcount)
         {
-            CreatedAccount(csv[1], csv[2], id);
+            //CreatedAccount(csv[1], csv[2], id);
+
+            Debug.Log("create an Account");
+            // check if player  account name already exists,
+
+            // local Variables
+            bool is_name_in_use = false;
+            string user_name = csv[1];
+            string password = csv[2];
+
+            foreach (PlayerAccount pa in player_accounts)
+            {
+                if (pa.name_ == user_name)
+                {
+                    is_name_in_use = true;
+                    break;
+                }
+            }
+
+            if (is_name_in_use)
+            {
+                SendMessageToClient(ServerToClientSignifiers.CreateAcountFailed + ",8", id);
+                Debug.LogWarning("This Account already exist");
+            }
+            else
+            {
+                // Create  new account, add to list
+
+                PlayerAccount newPlayAccount = new PlayerAccount(user_name, password);
+                player_accounts.AddLast(newPlayAccount);
+                SendMessageToClient(ServerToClientSignifiers.CreateAcountComplete + ",8", id);
+
+                // save list to HD
+                SavePlayerManagementFile();
+                Debug.LogWarning("This Account has created and add");
+            }
+            // If not, 
+            // send to success/ failure
         }
         else if (signifier == ClientToServerSignifiers.Login)
         {
+            // Login(csv[1], csv[2], id);
 
-            Login(csv[1], csv[2], id);
+            Debug.Log("Login to an account");
+            // check if player  account name already exists,
+
+            bool is_name_in_use = false;
+            bool is_passward_in_use = false;
+            string user_name = csv[1];
+            string password = csv[2];
+
+            foreach (PlayerAccount pa in player_accounts)
+            {
+                if (pa.name_ == user_name)
+                {
+                    is_name_in_use = true;
+                    break;
+                }
+            }
+
+            if (is_name_in_use)
+            {
+                foreach (PlayerAccount pa in player_accounts)
+                {
+                    if (pa.name_ == user_name && pa.password_ == password)
+                    {
+                        is_passward_in_use = true;
+                        break;
+                    }
+                }
+
+                if (is_passward_in_use)
+                {
+                    Debug.LogWarning("Password was right. You are in your Account");
+                    SendMessageToClient(ServerToClientSignifiers.LoginComplete + "," + user_name, id);
+
+                }
+                else
+                {
+                    SendMessageToClient(ServerToClientSignifiers.LoginFailedPassword + ",8", id);
+                    Debug.LogWarning("Password was wrong");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("This Account doesn't exist");
+                SendMessageToClient(ServerToClientSignifiers.LoginFailedAccount + ", 8", id);
+            }
+
+            // send to success/ failure
         }
         else if (signifier == ClientToServerSignifiers.SendChatMsg)
         {
             string Msg = csv[1];
 
-            SendingGlobalMessageInChat(Msg);
+            NotifyPublicChatRoomUsersWithAMsg(Msg);
         }
         else if (signifier == ClientToServerSignifiers.EnterTheChatRoom)
         {
-            AddPlayerToTheChat(csv[1], id);
+            //AddPlayerToTheChat(csv[1], id);
+
+            string user_name = csv[1];
+
+            // add to list player in public chat room
+            active_players_connected_global_chat.AddLast(new PlayerAccount(user_name, id));
+           
+
+            // join chat msg and send it all in public chat
+            string join_chat_msg = "< " + user_name + " > Have just join the chat.";
+            NotifyPublicChatRoomUsersWithAMsg(join_chat_msg);
+
+            // Update list of player for private messaging in Public chat room.
+            // so you can see who in the chat.
+            NotifyPublicChatRoomClientsOfChanges();
         }
         else if (signifier == ClientToServerSignifiers.Logout)
         {
-            LogOutPlayer(id);
+            //LogOutPlayer(id);
+
+            PlayerAccount temp_player_account = new PlayerAccount();
+            bool is_player_in_chat = false;
+
+            foreach (PlayerAccount pa in active_players_connected_global_chat)
+            {
+                if (id == pa.connection_id_)
+                {
+                    temp_player_account = pa;
+                    is_player_in_chat = true;
+                    break;
+                }
+            }
+
+            active_players_connected_global_chat.Remove(temp_player_account);
+            Debug.LogWarning("TempPlayerAccount : " + temp_player_account.connection_id_.ToString());
+
+            /// 
+            if (temp_player_account.name_ != "" && temp_player_account.name_ != null && is_player_in_chat)
+            {
+                string LogOutMsgOfChat = "< " + temp_player_account.name_ + " > Has Logout.";
+                NotifyPublicChatRoomUsersWithAMsg(LogOutMsgOfChat);
+
+                LogOutMsgOfChat = ServerToClientSignifiers.LogOutComplete + ",8";
+
+                //SendClearListofPlayersToClient();
+
+                NotifyPublicChatRoomClientsOfChanges();
+
+                SendMessageToClient(LogOutMsgOfChat, id);
+                return;
+
+            }
+
         }
         else if (signifier == ClientToServerSignifiers.SendChatPrivateMsg)
         {
-            SendIngPrivateMessageInChat(csv[1], csv[2], id);
+            // SendIngPrivateMessageInChat(csv[1], csv[2], id);
+
+            string global_chat_pm = csv[1];
+            string user_name = csv[2];
+
+            PlayerAccount specifier_player_in_chat = new PlayerAccount();
+            bool is_player_real = false;
+
+            foreach (PlayerAccount pa in active_players_connected_global_chat)
+            {
+                if (pa.name_ == user_name)
+                {
+                    specifier_player_in_chat = pa;
+                    is_player_real = true;
+                    break;
+                }
+            }
+            if (is_player_real)
+            {
+                if (specifier_player_in_chat.connection_id_ != id)
+                {
+                    SendMessageToClient(ServerToClientSignifiers.ReceivePrivateChatMsg + "," + global_chat_pm, id);
+                    SendMessageToClient(ServerToClientSignifiers.ReceivePrivateChatMsg + "," + global_chat_pm, specifier_player_in_chat.connection_id_);
+                }
+                else
+                {
+                    SendMessageToClient(ServerToClientSignifiers.ReceivePrivateChatMsg + "," + global_chat_pm, id);
+                }
+            }
+
+
         }
         else if (signifier == ClientToServerSignifiers.JoinQueueForGameRoom)
         {
@@ -497,6 +671,12 @@ public class NetworkedServer : MonoBehaviour
 
 
     #region ReusebleCode
+
+    /// <summary>
+    ///  GetGameRoomClientId
+    /// - Find a gameroom by Connection ID.
+    /// - used in alot place where GameRoom involve
+    /// </summary>
     private GameRoom GetGameRoomClientId (int id) 
     {
         foreach(GameRoom gr in game_rooms)
@@ -515,6 +695,12 @@ public class NetworkedServer : MonoBehaviour
         }
         return null;
     }
+
+    /// <summary>
+    /// GetGameRoomClientByUserName
+    /// - it's use to find specifie gameroom  with certain players.
+    /// - spectate mode use this funtion find players to view
+    /// </summary>
     private GameRoom GetGameRoomClientByUserName(string user_name)
     {
         foreach (GameRoom gr in game_rooms)
@@ -527,98 +713,14 @@ public class NetworkedServer : MonoBehaviour
         return null;
     }
 
-    public void CreatedAccount(string user_name, string password, int id) 
-    {
-        Debug.Log("create an Account");
-        // check if player  account name already exists,
+   
+    /// <summary>
+    /// NotifyPublicChatRoomUsersWithAMsg function used for Public chat
+    /// - Send the msg to all clients in the Public chat.
+    /// - not the gameroom chat
+    /// </summary>
 
-        bool is_name_in_use = false;
-
-        foreach (PlayerAccount pa in player_accounts)
-        {
-            if (pa.name_ == user_name)
-            {
-                is_name_in_use = true;
-                break;
-            }
-        }
-
-        if (is_name_in_use)
-        {
-            SendMessageToClient(ServerToClientSignifiers.CreateAcountFailed + ",8", id);
-            Debug.LogWarning("This Account already exist");
-        }
-        else
-        {
-            // Create  new account, add to list
-
-            PlayerAccount newPlayAccount = new PlayerAccount(user_name, password);
-            player_accounts.AddLast(newPlayAccount);
-            SendMessageToClient(ServerToClientSignifiers.CreateAcountComplete + ",8", id);
-
-            // save list to HD
-            SavePlayerManagementFile();
-            Debug.LogWarning("This Account has created and add");
-        }
-        // If not, 
-        // send to success/ failure
-    }
-
-
-    public void Login (string user_name, string password, int id)
-    {
-        Debug.Log("Login to an account");
-        // check if player  account name already exists,
-        
-        bool nameInUse = false;
-        bool Ispassward = false;
-
-        foreach (PlayerAccount pa in player_accounts)
-        {
-            if (pa.name_ == user_name)
-            {
-                nameInUse = true;
-                break;
-            }
-        }
-
-        if (nameInUse)
-        {
-            foreach (PlayerAccount pa in player_accounts)
-            {
-                if (pa.name_ == user_name && pa.password_ == password)
-                {
-                    Ispassward = true;
-                    break;
-                }
-            }
-
-            if (Ispassward)
-            {
-                Debug.LogWarning("Password was right. You are in your Account");
-                SendMessageToClient(ServerToClientSignifiers.LoginComplete + "," + user_name, id);
-
-                // check if that user is already login
-
-                 
-                
-            }
-            else
-            {
-                SendMessageToClient(ServerToClientSignifiers.LoginFailedPassword + ",8", id);
-                Debug.LogWarning("Password was wrong");
-            }
-        }
-        else
-        {
-            Debug.LogWarning("This Account doesn't exist");
-            SendMessageToClient(ServerToClientSignifiers.LoginFailedAccount + ", 8", id);
-        }
-
-        // send to success/ failure
-    }
-
-    public void SendingGlobalMessageInChat(string msg) 
+    private void NotifyPublicChatRoomUsersWithAMsg(string msg) 
     {
         foreach ( PlayerAccount pa in active_players_connected_global_chat)
         {
@@ -626,57 +728,63 @@ public class NetworkedServer : MonoBehaviour
         }
     }
 
-    public void SendIngPrivateMessageInChat(string msg, string user_name, int id ) 
+
+    /// <summary>
+    /// NotifyPublicChatClients function used for Public chat
+    /// -Whenever player join/dicconnect/leave it will give the players in the PublicChat new list activePlayers
+    /// -On cilent side its involve with list on player on side of chatroom
+    /// - not the gameroom chat.
+    /// </summary>
+
+    private void NotifyPublicChatRoomClientsOfChanges()
     {
-        PlayerAccount SpecifierPlayer = new PlayerAccount();
-        bool isPlayerReal = false;
-
-        foreach (PlayerAccount pa in active_players_connected_global_chat)
+        // first loop makes sure the players in PublicChat connect id get names of all the player
+        foreach (PlayerAccount cid in active_players_connected_global_chat)
         {
-            if(pa.name_ == user_name) 
-            {
-                SpecifierPlayer = pa;
-                isPlayerReal = true;
-                break;
-            }
-        }
-        if (isPlayerReal) 
-        {
-            if (SpecifierPlayer.connection_id_ != id)
-            {
-                SendMessageToClient(ServerToClientSignifiers.ReceivePrivateChatMsg + "," + msg, id);
-                SendMessageToClient(ServerToClientSignifiers.ReceivePrivateChatMsg + "," + msg, SpecifierPlayer.connection_id_);
-            }
-            else 
-            {
-                SendMessageToClient(ServerToClientSignifiers.ReceivePrivateChatMsg + "," + msg, id);
-            }
-        }
+            // tell the client to clear thier list global chat player before updating it.
+            SendMessageToClient(ServerToClientSignifiers.ReceiveClearListOFPlayerInChat + ",8", cid.connection_id_);
 
-
-    }
-    public void SendToListofPlayersToClient()
-    {
-        foreach (PlayerAccount pa in active_players_connected_global_chat)
-        {
-            foreach (PlayerAccount c in active_players_connected_global_chat) 
+            // second loop is to give eacch person in list all the name in the list
+            foreach (PlayerAccount pa in active_players_connected_global_chat) 
             {
-                SendMessageToClient(ServerToClientSignifiers.ReceiveListOFPlayerInChat + "," + pa.name_, c.connection_id_);
+                // sending update list of of player at are currently in global chat room to the client
+                // pa will changes name in loop
+                // well cid will not in this loop
+                                                                                               
+                SendMessageToClient(ServerToClientSignifiers.ReceiveListOFPlayerInChat + "," + pa.name_, cid.connection_id_);
             }
         }
     }
-    public void SendClearListofPlayersToClient()
+
+    
+
+     /// <summary>
+     /// GeneralDisconnected funtion is where all the disconnected code for
+     /// - Discconnection from the Game Queue
+     /// - Discconnection from the Public Chat room
+     /// - Discconnection from the GameRoom
+     /// </summary>
+
+
+    private void GeneralDisconnected(int connection_id) 
     {
-        foreach (PlayerAccount pa in active_players_connected_global_chat)
+        // check if it's player in Queue
+        if (player_waiting_for_match.connection_id_ == connection_id)
         {
-            SendMessageToClient(ServerToClientSignifiers.ReceiveClearListOFPlayerInChat + ",8" , pa.connection_id_);
+            // reset  player_waiting_for_match.connection_id in connection id
+            player_waiting_for_match.connection_id_ = -1;
+            player_waiting_for_match.name_ = "TempPlayer";
+
+            // break out the void funtion
+            return;
         }
-    }
-    public void PlayerDisconnect(int connection_id)
-    {
+
+
+        //NotifyGlobalChatClients
         bool is_player_in_Chat = false;
-       PlayerAccount temp_player_account = new PlayerAccount ();
-       
+        PlayerAccount temp_player_account = new PlayerAccount();
+
+        // checking if the disconnect id  in the  public chat 
 
         foreach (PlayerAccount pa in active_players_connected_global_chat)
         {
@@ -688,46 +796,37 @@ public class NetworkedServer : MonoBehaviour
             }
         }
 
-        active_players_connected_global_chat.Remove(temp_player_account);
-        Debug.LogWarning("TempPlayerAccount : " + temp_player_account.connection_id_.ToString());
-
-        /// 
-        if (temp_player_account.name_ != ""&& temp_player_account.name_ != null && is_player_in_Chat)
+        /// if found in the public chat do this below
+        if ( is_player_in_Chat) 
         {
+            active_players_connected_global_chat.Remove(temp_player_account);
+
+            NotifyPublicChatRoomClientsOfChanges();
+
+            Debug.LogWarning("TempPlayerAccount : " + temp_player_account.connection_id_.ToString());
+
             string DisconnectMsg = "< " + temp_player_account.name_ + " > Have been disconnected from the chat.";
-            SendingGlobalMessageInChat(DisconnectMsg);
-            return;
+
+            NotifyPublicChatRoomUsersWithAMsg(DisconnectMsg);
+
+            return; 
         }
-    }
 
-    public void DisconnectFromGame(int connection_id)
-    {
 
-        bool is_this_room = false;
-        
-          GameRoom temp_gr = new GameRoom();
+        // check if the disconnect id is in the game room
+        // game room
 
-        foreach (GameRoom gr in game_rooms)
+        bool is_game_room_vaild = false;
+
+        /// check if this connection id is a game room
+        GameRoom temp_gr = GetGameRoomClientId(connection_id);
+
+        if (temp_gr != null )
         {
-            if (gr.player_one_.connection_id_ == connection_id || gr.player_two_.connection_id_ == connection_id)
-            {
-                temp_gr = gr;
-                is_this_room = true;
-                break;
-            }
-            else if (gr.observer_ != null) 
-            {
-                if (gr.observer_.connection_id_ == connection_id) 
-                {
-                    temp_gr = gr;
-                    is_this_room = true;
-                    break;
-                }
-            }
+            is_game_room_vaild = true;
         }
 
-
-        if (is_this_room == true) 
+        if (is_game_room_vaild == true)
         {
 
             if (temp_gr.player_one_.connection_id_ == connection_id)
@@ -739,6 +838,7 @@ public class NetworkedServer : MonoBehaviour
                     SendMessageToClient(ServerToClientSignifiers.PlayerDisconnectFromGameRoom + ",0", temp_gr.observer_.connection_id_);
                 }
                 game_rooms.Remove(temp_gr);
+                return;
             }
             else if (temp_gr.player_two_.connection_id_ == connection_id)
             {
@@ -749,6 +849,7 @@ public class NetworkedServer : MonoBehaviour
 
                 }
                 game_rooms.Remove(temp_gr);
+                return;
             }
             else if (temp_gr.observer_.connection_id_ == connection_id)
             {
@@ -757,65 +858,14 @@ public class NetworkedServer : MonoBehaviour
                 SendMessageToClient(ServerToClientSignifiers.YouAreNotBeingObserved + ",0", temp_gr.player_one_.connection_id_);
                 SendMessageToClient(ServerToClientSignifiers.YouAreNotBeingObserved + ",0", temp_gr.player_two_.connection_id_);
                 temp_gr.observer_ = null;
+                return;
             }
-            is_this_room = false;
+           // is_this_room = false;
         }
     }
 
 
-    public void PlayerDisconnectFromQueueGame(int connection_id)
-    {
-        if (player_waiting_for_match.connection_id_ == connection_id)
-        {
-            player_waiting_for_match.connection_id_ = -1;
-            player_waiting_for_match.name_ = "TempPlayer";
-        }
-    }
-
-    public void LogOutPlayer(int connection_id)
-    {
-        PlayerAccount temp_player_account = new PlayerAccount();
-        bool is_player_in_chat = false;
-
-        foreach (PlayerAccount pa in active_players_connected_global_chat)
-        {
-            if (connection_id == pa.connection_id_)
-            {
-                temp_player_account = pa;
-                is_player_in_chat = true;
-                break;
-            }
-        }
-
-        active_players_connected_global_chat.Remove(temp_player_account);
-        Debug.LogWarning("TempPlayerAccount : " + temp_player_account.connection_id_.ToString());
-
-        /// 
-        if (temp_player_account.name_ != "" && temp_player_account.name_ != null && is_player_in_chat)
-        {
-            string LogOutMsgOfChat = "< " + temp_player_account.name_ + " > Has Logout.";
-            SendingGlobalMessageInChat(LogOutMsgOfChat);
-
-            LogOutMsgOfChat = ServerToClientSignifiers.LogOutComplete + ",8";
-            SendClearListofPlayersToClient();
-            SendToListofPlayersToClient();
-            SendMessageToClient(LogOutMsgOfChat, connection_id);
-            return;
-
-        }
-    }
-
-
-
-    public void AddPlayerToTheChat(string user_name, int id)
-    {
-        active_players_connected_global_chat.AddLast(new PlayerAccount(user_name,  id));
-        SendClearListofPlayersToClient();
-        SendToListofPlayersToClient();
-        // join chat msg
-        string join_chat_msg = "< " + user_name + " > Have just join the chat.";
-        SendingGlobalMessageInChat(join_chat_msg);
-    }
+    
 
     #endregion
 
@@ -843,7 +893,7 @@ public class NetworkedServer : MonoBehaviour
                     loaded_player = new PlayerAccount(csv[1], csv[2]);
                     player_accounts.AddLast(loaded_player);
                 }
-                else if (signifier == PlayerRecordManagementFileSignifiers.PlayerRecordIdSignifier)
+                else if (signifier == PlayerRecordManagementFileSignifiers.PlayerRecordNameIdSignifier)
                 {
                     loaded_player.record__names_.AddLast(csv[1]);
                 }
@@ -860,7 +910,7 @@ public class NetworkedServer : MonoBehaviour
             {
                 foreach (string rn in pa.record__names_)
                 {
-                    sw.WriteLine(PlayerRecordManagementFileSignifiers.PlayerRecordIdSignifier + "," + rn);
+                    sw.WriteLine(PlayerRecordManagementFileSignifiers.PlayerRecordNameIdSignifier + "," + rn);
                 }
             }
         }
@@ -878,7 +928,7 @@ public class NetworkedServer : MonoBehaviour
                 string[] csv = line.Split(',');
 
                 int signifier = int.Parse(csv[0]);
-                if (signifier == PlayerRecordManagementFileSignifiers.MatchDataIdSignifier)
+                if (signifier == PlayerRecordManagementFileSignifiers.KEnumMatchDataIdSignifier)
                 {
 
                     match_data.AddLast(new MatchData(csv[1], int.Parse(csv[2]), int.Parse(csv[3])));
@@ -892,7 +942,7 @@ public class NetworkedServer : MonoBehaviour
         StreamWriter sw = new StreamWriter(Application.dataPath + Path.DirectorySeparatorChar + file_name + ".txt");
         foreach (MatchData matchData in gr.match_data_)
         {
-            sw.WriteLine(PlayerRecordManagementFileSignifiers.MatchDataIdSignifier + "," + matchData.player_name_ + "," + matchData.positoin_ + "," + matchData.player_symbol_);
+            sw.WriteLine(PlayerRecordManagementFileSignifiers.KEnumMatchDataIdSignifier + "," + matchData.player_name_ + "," + matchData.positoin_ + "," + matchData.player_symbol_);
         }
         sw.Close();
     }
@@ -1109,10 +1159,12 @@ public class PlayerRecordManagementFileSignifiers
 {
     public const int PlayerIdSignifier = 1;
 
-    public const int PlayerRecordIdSignifier = 50;
+    public const int PlayerRecordNameIdSignifier = 50;
 
-    public const int MatchDataIdSignifier = 51;
-}
+    public const int KEnumMatchDataIdSignifier = 51;
+
+
+};
 
 
 /*
