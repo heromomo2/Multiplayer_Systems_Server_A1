@@ -24,3 +24,8 @@
 1,eman,e
 50,TaskNA4
 50,TaskOA3
+1,jk,jk
+50,wah
+50,yu yu haki
+1,b,b
+50,test for bug

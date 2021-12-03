@@ -27,11 +27,7 @@ public class NetworkedServer : MonoBehaviour
     // -list of players In Public Chat room
     LinkedList<PlayerAccount> active_players_connected_global_chat;
 
-    //LinkedList<string> PlayerRecordManagerFile;
-
-    // 
-    //int player_waiting_for_match_with_id = -1;
-
+    
     //- use in Queue system bed
     //- use Global Temporary A player
     PlayerAccount player_waiting_for_match = new PlayerAccount("TempPlayer", -1);
@@ -50,15 +46,20 @@ public class NetworkedServer : MonoBehaviour
 
 
 
+        /*
+         - initialzing my global variables
+         */
+
         game_rooms = new LinkedList<GameRoom>();
 
         active_players_connected_global_chat = new LinkedList<PlayerAccount>();
 
         player_accounts = new LinkedList<PlayerAccount>();
 
-       // PlayerRecordManagerFile = new LinkedList<string>();
+     
 
-        // read in player accounts from wherever
+        // reads in player accounts all store in text at beginning
+        //
         LoadPlayerManagementFile();
     }
 
@@ -84,8 +85,6 @@ public class NetworkedServer : MonoBehaviour
                 break;
             case NetworkEventType.ConnectEvent:
                 Debug.Log("Connection, " + recConnectionID);
-
-                // ClientList.AddLast(new Clinet(recConnectionID));
                 
                 break;
             case NetworkEventType.DataEvent:
@@ -98,35 +97,46 @@ public class NetworkedServer : MonoBehaviour
             case NetworkEventType.DisconnectEvent:
                 Debug.Log("Disconnection, " + recConnectionID);
 
-                //DisconnectFromGame(recConnectionID);
-
-                // PlayerDisconnectFromQueueGame(recConnectionID);// if a player disconnect durring queue.
-
-                //PlayerDisconnectionFromPublicChat(recConnectionID);
-
-                //SendClearListofPlayersToClient();
-
-
-                //DisconnectFromGame(recConnectionID);
-
-                
-
+                //- this where  GeneralDisconnected get the disconnection id from
                 GeneralDisconnected(recConnectionID);
 
-                
-
+           
                 break;
         }
 
     }
-  
+
+    /// <summary>
+    /// SendMessageToClient
+    /// - its the fuction thats send data back to client
+    /// </summary>
+    /// 
+    /// <param name="msg"></param>
+    /// - the data we want to send out.
+    /// 
+    /// <param name="id"></param>
+    /// -specific Connection id you want to send the data to.
     public void SendMessageToClient(string msg, int id)
     {
         byte error = 0;
         byte[] buffer = Encoding.Unicode.GetBytes(msg);
         NetworkTransport.Send(hostID, id, reliableChannelID, buffer, msg.Length * sizeof(char), out error);
     }
-    
+
+    /// <summary>
+    /// ProcessRecievedMsg
+    /// -it where I processsing the data from clients.
+    /// - signifier help determine what data what kind of data im get from the client and what to do with it.
+    /// </summary>
+    /// 
+    /// <param name="msg"></param>
+    /// -msg is the data we get from the clients
+    /// 
+    /// <param name="id"></param>
+    ///  - id is Connection id
+    ///  - it helps to identify the clinet
+    ///  - help differentiate clients
+    ///  
     private void ProcessRecievedMsg(string msg, int id)
     {
         Debug.Log("msg recieved = " + msg + ".  connection id = " + id);
@@ -137,16 +147,21 @@ public class NetworkedServer : MonoBehaviour
 
         if (signifier == ClientToServerSignifiers.CreateAcount)
         {
-            //CreatedAccount(csv[1], csv[2], id);
+            ///- got a  request to create a new player account
+
+          
 
             Debug.Log("create an Account");
             // check if player  account name already exists,
 
             // local Variables
+            // extracting  the data
             bool is_name_in_use = false;
             string user_name = csv[1];
             string password = csv[2];
 
+
+            //-- check if there a player Account with that username 
             foreach (PlayerAccount pa in player_accounts)
             {
                 if (pa.name_ == user_name)
@@ -156,6 +171,8 @@ public class NetworkedServer : MonoBehaviour
                 }
             }
 
+            //--if there is  player account with that name user name
+            // -- send a msg back if telling client the user is in invaild
             if (is_name_in_use)
             {
                 SendMessageToClient(ServerToClientSignifiers.CreateAcountFailed + ",8", id);
@@ -163,13 +180,17 @@ public class NetworkedServer : MonoBehaviour
             }
             else
             {
+                //--if there isn't  player account with that name user name
+                // -- send a msg back if telling client the user is vaild
+
                 // Create  new account, add to list
 
                 PlayerAccount newPlayAccount = new PlayerAccount(user_name, password);
                 player_accounts.AddLast(newPlayAccount);
                 SendMessageToClient(ServerToClientSignifiers.CreateAcountComplete + ",8", id);
 
-                // save list to HD
+                // update the PlayerManagementFile text
+                //  rewrite it
                 SavePlayerManagementFile();
                 Debug.LogWarning("This Account has created and add");
             }
@@ -178,16 +199,23 @@ public class NetworkedServer : MonoBehaviour
         }
         else if (signifier == ClientToServerSignifiers.Login)
         {
+            ///- got a  request Login with this data
+            ///
+
             // Login(csv[1], csv[2], id);
 
             Debug.Log("Login to an account");
-            // check if player  account name already exists,
+
+            // local Variables
+            // extracting  the data
 
             bool is_name_in_use = false;
             bool is_passward_in_use = false;
             string user_name = csv[1];
             string password = csv[2];
 
+
+            // check if player  account name already exists,
             foreach (PlayerAccount pa in player_accounts)
             {
                 if (pa.name_ == user_name)
@@ -197,8 +225,10 @@ public class NetworkedServer : MonoBehaviour
                 }
             }
 
+            //  if there is an player Accont
             if (is_name_in_use)
             {
+                //  check the pasword 
                 foreach (PlayerAccount pa in player_accounts)
                 {
                     if (pa.name_ == user_name && pa.password_ == password)
@@ -208,6 +238,7 @@ public class NetworkedServer : MonoBehaviour
                     }
                 }
 
+                // Both user name and password are correct
                 if (is_passward_in_use)
                 {
                     Debug.LogWarning("Password was right. You are in your Account");
@@ -216,12 +247,14 @@ public class NetworkedServer : MonoBehaviour
                 }
                 else
                 {
+                    // password was incorrect
                     SendMessageToClient(ServerToClientSignifiers.LoginFailedPassword + ",8", id);
                     Debug.LogWarning("Password was wrong");
                 }
             }
             else
             {
+                // user name isnt in our database
                 Debug.LogWarning("This Account doesn't exist");
                 SendMessageToClient(ServerToClientSignifiers.LoginFailedAccount + ", 8", id);
             }
@@ -230,32 +263,42 @@ public class NetworkedServer : MonoBehaviour
         }
         else if (signifier == ClientToServerSignifiers.SendChatMsg)
         {
+            ///- got a request send a msg to Public chat room with this data
+            /// extracting the msg
             string Msg = csv[1];
 
+            // send the msg all in Public chat rule
             NotifyPublicChatRoomUsersWithAMsg(Msg);
         }
         else if (signifier == ClientToServerSignifiers.EnterTheChatRoom)
         {
-            //AddPlayerToTheChat(csv[1], id);
+            // - got a request add the Public chat room 
 
+          
+            // get the user name from the msg
             string user_name = csv[1];
 
-            // add to list player in public chat room
+            // add this player to list player in public chat room
             active_players_connected_global_chat.AddLast(new PlayerAccount(user_name, id));
            
 
-            // join chat msg and send it all in public chat
+            // send the  join chat msg and send it all in public chat
             string join_chat_msg = "< " + user_name + " > Have just join the chat.";
             NotifyPublicChatRoomUsersWithAMsg(join_chat_msg);
 
-            // Update list of player for private messaging in Public chat room.
+            // Update list of player and options of players for private messaging in Public chat room.
             // so you can see who in the chat.
             NotifyPublicChatRoomClientsOfChanges();
         }
         else if (signifier == ClientToServerSignifiers.Logout)
         {
-            //LogOutPlayer(id);
+            // note to self  rename Logout signifier 
+            // check if it still works 
 
+            //- got a request to log out a player of the Public chat room
+
+
+            // check if this player is in the Public chat room
             PlayerAccount temp_player_account = new PlayerAccount();
             bool is_player_in_chat = false;
 
@@ -269,18 +312,25 @@ public class NetworkedServer : MonoBehaviour
                 }
             }
 
-            active_players_connected_global_chat.Remove(temp_player_account);
+          
             Debug.LogWarning("TempPlayerAccount : " + temp_player_account.connection_id_.ToString());
 
-            /// 
-            if (temp_player_account.name_ != "" && temp_player_account.name_ != null && is_player_in_chat)
+            /// if found  do the follow
+            ///  remove player with list of players in Public chat chat room
+            ///  create a logot msg and send it all players in Public chat room
+            ///  Update clients  on who in the Public chat (NotifyPublicChatRoomClientsOfChanges());
+            ///  send the logout player client the msg to exit them out
+            if (is_player_in_chat)
             {
+
+                active_players_connected_global_chat.Remove(temp_player_account);
+
                 string LogOutMsgOfChat = "< " + temp_player_account.name_ + " > Has Logout.";
                 NotifyPublicChatRoomUsersWithAMsg(LogOutMsgOfChat);
 
                 LogOutMsgOfChat = ServerToClientSignifiers.LogOutComplete + ",8";
 
-                //SendClearListofPlayersToClient();
+                
 
                 NotifyPublicChatRoomClientsOfChanges();
 
@@ -292,14 +342,21 @@ public class NetworkedServer : MonoBehaviour
         }
         else if (signifier == ClientToServerSignifiers.SendChatPrivateMsg)
         {
-            // SendIngPrivateMessageInChat(csv[1], csv[2], id);
+            // note to self  rename SendChatPrivateMsg signifier 
+            // check if it still works 
+            //- got a request to send a private message to someone in Public chat 
 
-            string global_chat_pm = csv[1];
-            string user_name = csv[2];
+
+            // extracting the data
+            string global_chat_pm = csv[1]; // the msg we want send
+            string user_name = csv[2]; // username of person in public chat we want to send it to.
 
             PlayerAccount specifier_player_in_chat = new PlayerAccount();
             bool is_player_real = false;
 
+
+            // check if the user we want to send it is in Public chat
+            // getting the player account and it's Connection id
             foreach (PlayerAccount pa in active_players_connected_global_chat)
             {
                 if (pa.name_ == user_name)
@@ -309,8 +366,12 @@ public class NetworkedServer : MonoBehaviour
                     break;
                 }
             }
+
+            // if the is user in the Public chat.
             if (is_player_real)
             {
+                // this code here to prevent  duplication.
+                // we don't want keep send the same msg multiple times
                 if (specifier_player_in_chat.connection_id_ != id)
                 {
                     SendMessageToClient(ServerToClientSignifiers.ReceivePrivateChatMsg + "," + global_chat_pm, id);
@@ -326,16 +387,26 @@ public class NetworkedServer : MonoBehaviour
         }
         else if (signifier == ClientToServerSignifiers.JoinQueueForGameRoom)
         {
+            //- got a request to play a game/
+
             Debug.Log(" We need to get this player in a waiting Queue!!!");
 
+            //check if someone else isn't already in the queue by check id number
+            // side note: the first player in  the queue gets move first when the game start
             if (player_waiting_for_match.connection_id_ == -1)
             {
+                // put get they're  data 
+                // hold it in the temporary globle Player account
                 player_waiting_for_match.connection_id_ = id;
                 player_waiting_for_match.name_ = csv[1];
             }
             else
             {
-                // so what if the player with their id being stored in PlayWaitingForMatchWithID has left???
+                // if you're the second player in queue.
+                // we are going create a game room and place you in it.
+                //  but if the first person in the queue  isconnects before someone else joins
+                //  (GeneralDisconnected() will rest temporary globle Player account if there is disconnects)
+                // you become the first person in the queue.
 
                 if (player_waiting_for_match.connection_id_ != -1) // check if first player in queue disconnect
                 {
@@ -349,16 +420,28 @@ public class NetworkedServer : MonoBehaviour
                     SendMessageToClient(ServerToClientSignifiers.GameStart + ", 2", gr.player_two_.connection_id_);
                     SendMessageToClient(ServerToClientSignifiers.GameStart + ", 1", gr.player_one_.connection_id_);
 
-                    //PlayerWaitingForMatchWithID = -1;
+                    //rest the globle Player account after placing the players into gameroom
                     player_waiting_for_match = new PlayerAccount("TempPlayer", -1);
                 }
             }
         }
         else if (signifier == ClientToServerSignifiers.TicTacToesSomethingSomthing)
         {
+
+            // note to self  rename TicTacToesSomethingSomthing signifier 
+            // check if it still works 
+
+            //- got a request to do a move on the  TicTacToesboard
+
+            // find the game room
             GameRoom gr = GetGameRoomClientId(id);
             if (gr != null)
             {
+                // check which player made the move
+                // - then tell the player who moved to wait and send the move to your opponent.
+                // - will do the same when your opponent moves.
+                // - store the data of the move into gameroom's match data.
+                // -this is turn base and not real time
                 if (gr.player_one_.connection_id_ == id)
                 {
 
@@ -383,27 +466,31 @@ public class NetworkedServer : MonoBehaviour
                     // storing match data here:
                     gr.match_data_.AddLast(new MatchData(gr.player_two_.name_ , int.Parse(csv[1]), 2 ));
                 }
-                //Bug:we never clean up our GameRooms, even One players leaves
-                // we need to 
+               
             }
 
         }
         else if (signifier == ClientToServerSignifiers.ReMatchOfTicTacToe)
         {
+            //- got a request to  the ReMatch the TicTacToe game
+
+            // find game room
             GameRoom gr = GetGameRoomClientId(id);
 
-
+            // check which player argee to a rematch 
             if (gr.player_one_.connection_id_ == id)
             {
-              
                 gr.agree_to_rematch_[0] = 1;
             }
             else
             {
-                
                 gr.agree_to_rematch_[1] = 1;
             }
 
+            // if both players argee to rematch
+            // -send a msg to reset the to TicTacToe board
+            // - reset the argee int
+            // clear the past match data
             if (gr.agree_to_rematch_[0] == 1 && gr.agree_to_rematch_[1] == 1)
             {
                 SendMessageToClient(ServerToClientSignifiers.ReMatchOfTicTacToeComplete + ",2", gr.player_two_.connection_id_);
@@ -421,10 +508,15 @@ public class NetworkedServer : MonoBehaviour
         }
         else if (signifier == ClientToServerSignifiers.ExitTacTacToe)
         {
+            //- got a request to the ExitTacTacToe
+
+            // find game room
             GameRoom gr = GetGameRoomClientId(id);
 
-            // ListOfgamerooms.Remove(gr);
-
+            // send a msg to the player who request it and log them out
+            //  stop the other player for  requesting a rematch( they're rematch button isn't use able)
+            //  and  disconnect the observer from the GameRoom if there is one.
+            // if there is no players in the gameroom it will be remove
             if (gr.player_one_.connection_id_ == id)
             {
                 SendMessageToClient(ServerToClientSignifiers.PreventRematch + ",2", gr.player_two_.connection_id_);
@@ -456,6 +548,9 @@ public class NetworkedServer : MonoBehaviour
         }
         else if (signifier == ClientToServerSignifiers.SearchGameRoomsByUserName)
         {
+            //- got a request to view a gameroom
+
+            // send this msg back if there no player with that usernamme in the list of gamerooms
             if (GetGameRoomClientByUserName(csv[1]) == null)
             {
                 SendMessageToClient(ServerToClientSignifiers.SearchGameRoomsByUserNameFailed + ",0", id);
@@ -463,50 +558,92 @@ public class NetworkedServer : MonoBehaviour
             }
             else
             {
+                // found the game room with user
                 GameRoom gr = GetGameRoomClientByUserName(csv[1]);
 
+                // check if isn't already be view by someone
                 if (gr.observer_ == null)
                 {
-
+                    // check if which player is be view.
+                    // -> will board data to server to be sent to observer.
                     if (gr.player_one_.name_ == csv[1])
                     {
                         SendMessageToClient(ServerToClientSignifiers.YouareBeingObserved + ",0", gr.player_one_.connection_id_);
                         SendMessageToClient(ServerToClientSignifiers.SearchGameRoomsByUserNameComplete + "," + gr.player_two_.name_.ToString(), id);
                         gr.observer_ = new PlayerAccount("Observer", id);
+                        gr.view_player_connection_id_ = gr.player_one_.connection_id_;
                     }
                     else
                     {
                         SendMessageToClient(ServerToClientSignifiers.YouareBeingObserved + ",0", gr.player_two_.connection_id_);
                         SendMessageToClient(ServerToClientSignifiers.SearchGameRoomsByUserNameComplete + "," + gr.player_one_.name_.ToString(), id);
                         gr.observer_ = new PlayerAccount("Observer", id);
+                        gr.view_player_connection_id_ = gr.player_two_.connection_id_;
                     }
                 }
                 else
                 {
+                    // already be view by someone
+                    // size at max view (is one)
                     SendMessageToClient(ServerToClientSignifiers.SearchGameRoomsByUserNameSizeFailed + ",0", id);
                 }
             }
+            // side note:
+            // this code is old and can update..( this code was made  before sharingRoom class )-> learned a lot from that class about game room.
+            // this code was made during read week and before I realize correct due of assignment.
+            // it can be redesign: gr could send all matchdata to observers.
+            // gr would have be redesign with list of observers instead just one
+            // -A way to check that list of observers isn't empty
+            // - send a move to Observers every time players makes a move
         }
         else if (signifier == ClientToServerSignifiers.SendObserverData)
         {
+            //- got a request from the view player to send board data to the observer
+
             GameRoom gr = GetGameRoomClientId(id);
+
             SendMessageToClient(ServerToClientSignifiers.ObserverGetsMove + "," + csv[1] + "," + csv[2] + "," + csv[3] + "," + csv[4] + "," + csv[5] + "," + csv[6] + "," + csv[7] + "," + csv[8] + "," + csv[9] + "," + csv[10], gr.observer_.connection_id_);
+           
             // Debug.LogWarning("SendObserverData" + "," + csv[1] + "," + csv[2] + "," + csv[3] + ",\n" + csv[4] + "," + csv[5] + "," + csv[7] + ",\n"+csv[6] + "," + csv[8] + "," + csv[9] + ",\n" + csv[10]);
         }
         else if (signifier == ClientToServerSignifiers.StopObserving)
         {
+            //-  got a request from observer to watching
+
+            // check if which player is view be viewd
+            // send msg to view player to stop sending move to observer
+            // log out the observer
+            // set observer to null
             GameRoom gr = GetGameRoomClientId(id);
-            SendMessageToClient(ServerToClientSignifiers.YouAreNotBeingObserved + ",0", gr.player_one_.connection_id_);
-            SendMessageToClient(ServerToClientSignifiers.YouAreNotBeingObserved + ",0", gr.player_two_.connection_id_);
-            SendMessageToClient(ServerToClientSignifiers.StopObservingComplete + ",0", gr.observer_.connection_id_);
-            gr.observer_ = null;
+            if (gr.player_one_.connection_id_ == gr.view_player_connection_id_)
+            {
+                SendMessageToClient(ServerToClientSignifiers.YouAreNotBeingObserved + ",0", gr.player_one_.connection_id_);
+                SendMessageToClient(ServerToClientSignifiers.StopObservingComplete + ",0", gr.observer_.connection_id_);
+                gr.observer_ = null;
+            }
+            else if (gr.player_two_.connection_id_ == gr.view_player_connection_id_) 
+            {
+                SendMessageToClient(ServerToClientSignifiers.YouAreNotBeingObserved + ",0", gr.player_two_.connection_id_);
+                SendMessageToClient(ServerToClientSignifiers.StopObservingComplete + ",0", gr.observer_.connection_id_);
+                gr.observer_ = null;
+            }
 
         }
         else if (signifier == ClientToServerSignifiers.SendGameRoomChatMSG)
         {
-            GameRoom gr = GetGameRoomClientId(id);
-            string game_room_chat_msg = csv[1];
+            // note to self  rename SendGameRoomChatMSG signifier 
+            // check if it still works 
 
+            //- got a request to send a message from a gameroom for everyone in gameroom to see
+
+            // find the gameroom
+            GameRoom gr = GetGameRoomClientId(id);
+
+            // get the msg
+            string game_room_chat_msg = csv[1];
+            
+            /// if the gr exist
+            /// send the msg all in the gameroom
             if (gr != null)
             {
                 SendMessageToClient(ServerToClientSignifiers.ReceiveGameRoomChatMSG + "," + game_room_chat_msg, gr.player_one_.connection_id_);
@@ -520,12 +657,20 @@ public class NetworkedServer : MonoBehaviour
         }
         else if (signifier == ClientToServerSignifiers.SendOnlyObserverGameRoomChatMSG)
         {
+            //- got a request to send a message from a gameroom for only the observer in gameroom to see
+
+            // find the game room
             GameRoom gr = GetGameRoomClientId(id);
+            // grab the msg
             string game_room_chat_msg = csv[1];
+
+            // if the gr exists
+            // check if there is obsever and send them the msg
+            // the next if statement is there to  prevent  duplicates msg
 
             if (gr != null)
             {
-                //SendMessageToClient(ServerToClientSignifiers.ReceiveGameRoomChatMSG + "," + Msg, id);
+                
                 if (gr.observer_ != null)
                 {
                     if (gr.observer_.connection_id_ == id)
@@ -543,9 +688,17 @@ public class NetworkedServer : MonoBehaviour
         }
         else if (signifier == ClientToServerSignifiers.SendOnlyPlayerGameRoomChatMSG)
         {
+            //- got a request to send a message from a gameroom for only the players in gameroom to see
+
+            // find the game room
             GameRoom gr = GetGameRoomClientId(id);
+
+            // grab the msg
             string msg_from_game_room_chat_room = csv[1];
 
+            // if the gr exists
+            // the next if statement is there to  prevent  duplicates msg
+            // send the msg to the players
             if (gr != null)
             {
                 if (gr.player_one_.connection_id_ == id)
@@ -570,15 +723,14 @@ public class NetworkedServer : MonoBehaviour
         }
         else if (signifier == ClientToServerSignifiers.CreateARecored)
         {
-            Debug.Log("Player name: " + csv[1] + "RecordMatchName: " + csv[2]);
+           // Debug.Log("Player name: " + csv[1] + "RecordMatchName: " + csv[2]);
+
+            ///- 
             bool isFileNameUnique = false;
 
             foreach (PlayerAccount pa in player_accounts)
             {
-                //if(pa.name == csv[1]) 
-                //{
-                //     pa.recordMatchNames.AddLast(csv[2]);
-                //}
+                
 
                 if (pa.record__names_ != null )
                 {
@@ -589,11 +741,14 @@ public class NetworkedServer : MonoBehaviour
                         {
                             if (csv[2] == rmn)
                             {
+                                // if we a record with that name we want to break of out the foreach
                                 isFileNameUnique = false;
                                 break;
                             }
                             else
                             {
+                                // if we don't find a record with that name
+                                // player will be able a create record with that
                                 isFileNameUnique = true;
                             }
                         }
@@ -604,6 +759,8 @@ public class NetworkedServer : MonoBehaviour
                     }
                 }
             }
+            //there is no record with that name
+            // create record under this playerAccount
             if (isFileNameUnique == true)
             {
                 foreach (PlayerAccount pa in player_accounts)
@@ -622,22 +779,35 @@ public class NetworkedServer : MonoBehaviour
                     }
                 }
             }
-            else
+            else //there is  record with that name
             {
+                // send a msg that we already a reacord with that name
                 Debug.Log("Player fail to create FileNameUnique for record");
                 SendMessageToClient(ServerToClientSignifiers.CreateARecoredFail + ",0", id);
             }
+
+            // update PlayerManagementFile txt file
+            // this might need to be moveV
             SavePlayerManagementFile();
-            //LoadPlayerManagementFile();
+           
         }
         else if (signifier == ClientToServerSignifiers.AskForAllRecoreds)
         {
+            //- got a request to send all record name underneath this playerAccount.
+
+            // looking for a player Account 
             foreach (PlayerAccount pa in player_accounts)
             {
+                // if we find that player account
                 if (pa.name_ == csv[1])
                 {
+                    // if check there any records
                     if (pa.record__names_.Count != 0) 
                     {
+                        // send the client a msg that we're about to send all record name
+                        // send all record name to client
+                        // send a msg that we are done sending all the record name to the client
+
                         SendMessageToClient(ServerToClientSignifiers.StartSendAllRecoredsName + ",0", id);
                         foreach (string rmd in pa.record__names_)
                         {
@@ -645,7 +815,7 @@ public class NetworkedServer : MonoBehaviour
                         }
                         SendMessageToClient(ServerToClientSignifiers.DoneSendAllRecoredsName + ",0", id); 
                     }
-                    else 
+                    else // there was no records
                     {
                         // this player don't have a any match data/ record name
                         SendMessageToClient(ServerToClientSignifiers.NoRecordsNamefound + ",0", id);
@@ -655,11 +825,22 @@ public class NetworkedServer : MonoBehaviour
         }
         else if (signifier == ClientToServerSignifiers.AskForThisRecoredMatchData) 
         {
-        
-            LinkedList<MatchData> matchDatas = new LinkedList<MatchData>();
-            ReadSaveMatchData(csv[1], matchDatas);
+            //- got a request for Matchdata
+
+            // temporary list of  match data
+            LinkedList<MatchData> match_datas = new LinkedList<MatchData>();
+
+            // read the text data
+            // we are pass in text file name and  list of match data
+            // we'll get all mata data from  that  text fill in the temporary list of  match data
+            ReadSaveMatchData(csv[1], match_datas);
+
+            // send the client a msg that we're about to send all match data
+            // send all  match data to client
+            // send a msg that we are done sending all the match data to the client
+
             SendMessageToClient(ServerToClientSignifiers.StartSendThisRecoredMatchData + ",0", id);
-            foreach (MatchData md in matchDatas)
+            foreach (MatchData md in match_datas)
             {
                 SendMessageToClient(ServerToClientSignifiers.SendAllThisRecoredMatchData+ "," + md.player_name_ +","+ md.positoin_ + "," + md.player_symbol_, id);
 
@@ -675,7 +856,7 @@ public class NetworkedServer : MonoBehaviour
     /// <summary>
     ///  GetGameRoomClientId
     /// - Find a gameroom by Connection ID.
-    /// - used in alot place where GameRoom involve
+    /// - used in alot place where GameRooms are involve
     /// </summary>
     private GameRoom GetGameRoomClientId (int id) 
     {
@@ -768,6 +949,7 @@ public class NetworkedServer : MonoBehaviour
 
     private void GeneralDisconnected(int connection_id) 
     {
+        // - Discconnection from the Game Queue
         // check if it's player in Queue
         if (player_waiting_for_match.connection_id_ == connection_id)
         {
@@ -779,8 +961,8 @@ public class NetworkedServer : MonoBehaviour
             return;
         }
 
-
-        //NotifyGlobalChatClients
+        // - Discconnection from the Public Chat room
+        //check if it's player  in Public Chat room
         bool is_player_in_Chat = false;
         PlayerAccount temp_player_account = new PlayerAccount();
 
@@ -812,7 +994,7 @@ public class NetworkedServer : MonoBehaviour
             return; 
         }
 
-
+        /// - Discconnection from the GameRoom
         // check if the disconnect id is in the game room
         // game room
 
@@ -860,12 +1042,12 @@ public class NetworkedServer : MonoBehaviour
                 temp_gr.observer_ = null;
                 return;
             }
-           // is_this_room = false;
+          
         }
     }
 
 
-    
+
 
     #endregion
 
@@ -873,7 +1055,21 @@ public class NetworkedServer : MonoBehaviour
 
 
     #region Save/LoadFunctions
+    /// <summary>
+    /// - Save/LoadFunctions
+    /// -This is code involve with storing data as txt
+    /// - also involve reading the text
+    /// </summary>
+    /// 
 
+
+    ///<summary>
+    ///-LoadPlayerManagementFile()
+    ///- checks if PlayerManagement text exist.
+    ///- read the data from it.
+    ///- use  PlayerRecordManagementFileSignifiers find what data it is.
+    ///-  place the data as new PlayerAccont and add it to (List of PlayerAccount)player_accounts
+    /// </summary>
     public void LoadPlayerManagementFile()
     {
         if (File.Exists(Application.dataPath + Path.DirectorySeparatorChar + "PlayerManagementFile.txt"))
@@ -900,6 +1096,13 @@ public class NetworkedServer : MonoBehaviour
             }
         }
     }
+
+    /// <summary>
+    /// -SavePlayerManagementFile()
+    /// - Create a Text file named PlayerManagementFile.
+    /// - Writes data into the text for us to read later on.
+    /// -use PlayerRecordManagementFileSignifiers is use to tell what data what are looking at
+    /// </summary>
     public void SavePlayerManagementFile()
     {
         StreamWriter sw = new StreamWriter(Application.dataPath + Path.DirectorySeparatorChar + "PlayerManagementFile.txt");
@@ -917,7 +1120,12 @@ public class NetworkedServer : MonoBehaviour
         sw.Close();
     }
 
-    public void ReadSaveMatchData(string file_name, LinkedList<MatchData> match_data)
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="file_name"></param>
+    /// <param name="match_datas"></param>
+    public void ReadSaveMatchData(string file_name, LinkedList<MatchData> match_datas)
     {
         if (File.Exists(Application.dataPath + Path.DirectorySeparatorChar + file_name + ".txt"))
         {
@@ -931,12 +1139,17 @@ public class NetworkedServer : MonoBehaviour
                 if (signifier == PlayerRecordManagementFileSignifiers.KEnumMatchDataIdSignifier)
                 {
 
-                    match_data.AddLast(new MatchData(csv[1], int.Parse(csv[2]), int.Parse(csv[3])));
+                    match_datas.AddLast(new MatchData(csv[1], int.Parse(csv[2]), int.Parse(csv[3])));
                 }
             }
         }
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="gr"></param>
+    /// <param name="file_name"></param>
     public void SaveMatchData(GameRoom gr, string file_name)
     {
         StreamWriter sw = new StreamWriter(Application.dataPath + Path.DirectorySeparatorChar + file_name + ".txt");
@@ -961,7 +1174,9 @@ public class NetworkedServer : MonoBehaviour
 
         public LinkedList<MatchData> match_data_;
 
-        public int[] agree_to_rematch_; 
+        public int[] agree_to_rematch_;
+
+        public int view_player_connection_id_;
 
         public GameRoom()
         {
