@@ -56,22 +56,12 @@
     <Compile Include="Assets\NetworkedServer.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Assets\ taskna1.txt" />
-    <None Include="Assets\test02.txt" />
-    <None Include="Assets\test for bug.txt" />
     <None Include="Assets\PlayerManagementFile.txt" />
-    <None Include="Assets\TaskNA3.txt" />
-    <None Include="Assets\TaskOA!.txt" />
-    <None Include="Assets\wah.txt" />
-    <None Include="Assets\TaskNA2.txt" />
-    <None Include="Assets\yyyyyy.txt" />
-    <None Include="Assets\test03.txt" />
-    <None Include="Assets\TaskOA2.txt" />
-    <None Include="Assets\test01.txt" />
-    <None Include="Assets\yu yu haki.txt" />
-    <None Include="Assets\BigScreen.txt" />
-    <None Include="Assets\TaskNA4.txt" />
-    <None Include="Assets\TaskOA3.txt" />
+    <None Include="Assets\fug.txt" />
+    <None Include="Assets\1.txt" />
+    <None Include="Assets\ok.txt" />
+    <None Include="Assets\gggg.txt" />
+    <None Include="Assets\jj.txt" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">

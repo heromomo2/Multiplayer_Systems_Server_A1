@@ -1,31 +1,14 @@
-1,jojo,sp
-1,Momo,dragon
-1,long,op
-1,hatlover,cowhat
-1,momo,hat
-50,test02
-1,Carlo,Green
-1,p,p
-50,TaskNA3
-50,TaskOA!
 1,n,n
-1,lazyTeacher,lt
-1,g,g
+50,fug
+50,jj
 1,j,j
-50,TaskNA2
-50,TaskOA2
-1,h,h
-50, taskna1
-50,BigScreen
-50,yyyyyy
-1,carlo,c
-50,test01
-50,test03
-1,eman,e
-50,TaskNA4
-50,TaskOA3
-1,jk,jk
-50,wah
-50,yu yu haki
-1,b,b
-50,test for bug
+50,fug
+1,mo,mo
+50,1
+50,fug
+1,ca,ca
+50,ok
+50,fug
+50,gggg
+1,k,k
+1,u,u

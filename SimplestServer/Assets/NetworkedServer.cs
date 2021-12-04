@@ -261,7 +261,7 @@ public class NetworkedServer : MonoBehaviour
 
             // send to success/ failure
         }
-        else if (signifier == ClientToServerSignifiers.SendChatMsg)
+        else if (signifier == ClientToServerSignifiers.NotifyPublicChatChatOfGlobalMsg)
         {
             ///- got a request send a msg to Public chat room with this data
             /// extracting the msg
@@ -270,9 +270,9 @@ public class NetworkedServer : MonoBehaviour
             // send the msg all in Public chat rule
             NotifyPublicChatRoomUsersWithAMsg(Msg);
         }
-        else if (signifier == ClientToServerSignifiers.EnterTheChatRoom)
+        else if (signifier == ClientToServerSignifiers.EnterThePublicChatRoom)
         {
-            // - got a request add the Public chat room 
+            // - got a request add a player to the Public chat room 
 
           
             // get the user name from the msg
@@ -290,9 +290,9 @@ public class NetworkedServer : MonoBehaviour
             // so you can see who in the chat.
             NotifyPublicChatRoomClientsOfChanges();
         }
-        else if (signifier == ClientToServerSignifiers.Logout)
+        else if (signifier == ClientToServerSignifiers.NotifyPublicChatOfLogout)
         {
-            // note to self  rename Logout signifier 
+            
             // check if it still works 
 
             //- got a request to log out a player of the Public chat room
@@ -340,7 +340,7 @@ public class NetworkedServer : MonoBehaviour
             }
 
         }
-        else if (signifier == ClientToServerSignifiers.SendChatPrivateMsg)
+        else if (signifier == ClientToServerSignifiers.NotifyPublicChatWitchAPrivateMsg)
         {
             // note to self  rename SendChatPrivateMsg signifier 
             // check if it still works 
@@ -425,10 +425,8 @@ public class NetworkedServer : MonoBehaviour
                 }
             }
         }
-        else if (signifier == ClientToServerSignifiers.TicTacToesSomethingSomthing)
+        else if (signifier == ClientToServerSignifiers.TicTacTacDoAMove)
         {
-
-            // note to self  rename TicTacToesSomethingSomthing signifier 
             // check if it still works 
 
             //- got a request to do a move on the  TicTacToesboard
@@ -470,7 +468,7 @@ public class NetworkedServer : MonoBehaviour
             }
 
         }
-        else if (signifier == ClientToServerSignifiers.ReMatchOfTicTacToe)
+        else if (signifier == ClientToServerSignifiers.RematchOfTicTacToe)
         {
             //- got a request to  the ReMatch the TicTacToe game
 
@@ -548,7 +546,7 @@ public class NetworkedServer : MonoBehaviour
         }
         else if (signifier == ClientToServerSignifiers.SearchGameRoomsByUserName)
         {
-            //- got a request to view a gameroom
+            //- got a request to seach gameroom by usename name from viewing
 
             // send this msg back if there no player with that usernamme in the list of gamerooms
             if (GetGameRoomClientByUserName(csv[1]) == null)
@@ -603,8 +601,7 @@ public class NetworkedServer : MonoBehaviour
             GameRoom gr = GetGameRoomClientId(id);
 
             SendMessageToClient(ServerToClientSignifiers.ObserverGetsMove + "," + csv[1] + "," + csv[2] + "," + csv[3] + "," + csv[4] + "," + csv[5] + "," + csv[6] + "," + csv[7] + "," + csv[8] + "," + csv[9] + "," + csv[10], gr.observer_.connection_id_);
-           
-            // Debug.LogWarning("SendObserverData" + "," + csv[1] + "," + csv[2] + "," + csv[3] + ",\n" + csv[4] + "," + csv[5] + "," + csv[7] + ",\n"+csv[6] + "," + csv[8] + "," + csv[9] + ",\n" + csv[10]);
+         
         }
         else if (signifier == ClientToServerSignifiers.StopObserving)
         {
@@ -629,7 +626,7 @@ public class NetworkedServer : MonoBehaviour
             }
 
         }
-        else if (signifier == ClientToServerSignifiers.SendGameRoomChatMSG)
+        else if (signifier == ClientToServerSignifiers.SendGameRoomGlobalChatMSG)
         {
             // note to self  rename SendGameRoomChatMSG signifier 
             // check if it still works 
@@ -723,10 +720,13 @@ public class NetworkedServer : MonoBehaviour
         }
         else if (signifier == ClientToServerSignifiers.CreateARecored)
         {
-           // Debug.Log("Player name: " + csv[1] + "RecordMatchName: " + csv[2]);
+           // - got request to create a record
 
-            ///- 
-            bool isFileNameUnique = false;
+            ///-  two bool are needed
+            /// we don't change the value of bool when we break out the inner foreach loop
+            /// we wantto allow player account with no record to be allow create ones, but prevent use of the same name
+            bool is_file_name_unique = false;
+            bool does_file_exist = false;
 
             foreach (PlayerAccount pa in player_accounts)
             {
@@ -742,26 +742,33 @@ public class NetworkedServer : MonoBehaviour
                             if (csv[2] == rmn)
                             {
                                 // if we a record with that name we want to break of out the foreach
-                                isFileNameUnique = false;
+                                is_file_name_unique = false;
+                                does_file_exist = true;
                                 break;
                             }
                             else
                             {
                                 // if we don't find a record with that name
                                 // player will be able a create record with that
-                                isFileNameUnique = true;
+                                is_file_name_unique = true;
                             }
                         }
                     }/// if there account with no record
+                    ///- allow account with no  record to crate record
+                    /// but not with an existing name
                     else if (pa.record__names_.Count == 0) 
                     {
-                        isFileNameUnique = true;
+                        if (does_file_exist == false)
+                        {
+                            is_file_name_unique = true;
+                        }
+          
                     }
                 }
             }
             //there is no record with that name
             // create record under this playerAccount
-            if (isFileNameUnique == true)
+            if (is_file_name_unique == true)
             {
                 foreach (PlayerAccount pa in player_accounts)
                 {
@@ -769,12 +776,12 @@ public class NetworkedServer : MonoBehaviour
                     {
                         pa.record__names_.AddLast(csv[2]);
                         Debug.Log("Player Success to create FileNameUnique for record");
-
-
                         // Store the MatchData into a text file:
                         GameRoom gr = GetGameRoomClientId(id);
                         SaveMatchData(gr, csv[2]);
                         SendMessageToClient(ServerToClientSignifiers.CreateARecoredSuccess + ",0", id);
+
+                        SavePlayerManagementFile();
                         break;
                     }
                 }
@@ -788,10 +795,10 @@ public class NetworkedServer : MonoBehaviour
 
             // update PlayerManagementFile txt file
             // this might need to be moveV
-            SavePlayerManagementFile();
-           
+            //SavePlayerManagementFile();
+            
         }
-        else if (signifier == ClientToServerSignifiers.AskForAllRecoreds)
+        else if (signifier == ClientToServerSignifiers.AskForAllRecoredNames)
         {
             //- got a request to send all record name underneath this playerAccount.
 
@@ -1083,13 +1090,13 @@ public class NetworkedServer : MonoBehaviour
                 string[] csv = line.Split(',');
 
                 int signifier = int.Parse(csv[0]);
-                if (signifier == PlayerRecordManagementFileSignifiers.PlayerIdSignifier)
+                if (signifier == PlayerRecordSavingSignifiers.PlayerIdSignifier)
                 {
 
                     loaded_player = new PlayerAccount(csv[1], csv[2]);
                     player_accounts.AddLast(loaded_player);
                 }
-                else if (signifier == PlayerRecordManagementFileSignifiers.PlayerRecordNameIdSignifier)
+                else if (signifier == PlayerRecordSavingSignifiers.PlayerRecordNameIdSignifier)
                 {
                     loaded_player.record__names_.AddLast(csv[1]);
                 }
@@ -1108,12 +1115,12 @@ public class NetworkedServer : MonoBehaviour
         StreamWriter sw = new StreamWriter(Application.dataPath + Path.DirectorySeparatorChar + "PlayerManagementFile.txt");
         foreach (PlayerAccount pa in player_accounts)
         {
-            sw.WriteLine(PlayerRecordManagementFileSignifiers.PlayerIdSignifier + "," + pa.name_ + "," + pa.password_);
+            sw.WriteLine(PlayerRecordSavingSignifiers.PlayerIdSignifier + "," + pa.name_ + "," + pa.password_);
             if (pa.record__names_ != null && pa.record__names_.Count != 0)
             {
                 foreach (string rn in pa.record__names_)
                 {
-                    sw.WriteLine(PlayerRecordManagementFileSignifiers.PlayerRecordNameIdSignifier + "," + rn);
+                    sw.WriteLine(PlayerRecordSavingSignifiers.PlayerRecordNameIdSignifier + "," + rn);
                 }
             }
         }
@@ -1136,7 +1143,7 @@ public class NetworkedServer : MonoBehaviour
                 string[] csv = line.Split(',');
 
                 int signifier = int.Parse(csv[0]);
-                if (signifier == PlayerRecordManagementFileSignifiers.KEnumMatchDataIdSignifier)
+                if (signifier == PlayerRecordSavingSignifiers.MatchDataIdSignifier)
                 {
 
                     match_datas.AddLast(new MatchData(csv[1], int.Parse(csv[2]), int.Parse(csv[3])));
@@ -1155,7 +1162,7 @@ public class NetworkedServer : MonoBehaviour
         StreamWriter sw = new StreamWriter(Application.dataPath + Path.DirectorySeparatorChar + file_name + ".txt");
         foreach (MatchData matchData in gr.match_data_)
         {
-            sw.WriteLine(PlayerRecordManagementFileSignifiers.KEnumMatchDataIdSignifier + "," + matchData.player_name_ + "," + matchData.positoin_ + "," + matchData.player_symbol_);
+            sw.WriteLine(PlayerRecordSavingSignifiers.MatchDataIdSignifier + "," + matchData.player_name_ + "," + matchData.positoin_ + "," + matchData.player_symbol_);
         }
         sw.Close();
     }
@@ -1259,19 +1266,19 @@ public class ClientToServerSignifiers
 
     public const int Login = 2;
 
-    public const int SendChatMsg = 3; // send a globle chat message
+    public const int NotifyPublicChatChatOfGlobalMsg = 3; // send a globle chat message
 
-    public const int SendChatPrivateMsg = 4;// send a chat private msg
+    public const int NotifyPublicChatWitchAPrivateMsg = 4;// send a chat private msg
 
-    public const int EnterTheChatRoom = 5; // enter the chat room
+    public const int EnterThePublicChatRoom = 5; // enter the chat room
 
-    public const int Logout = 6;//
+    public const int NotifyPublicChatOfLogout = 6;//
 
     public const int JoinQueueForGameRoom = 7;
 
-    public const int TicTacToesSomethingSomthing = 8;
+    public const int TicTacTacDoAMove = 8;
 
-    public const int ReMatchOfTicTacToe = 9;
+    public const int RematchOfTicTacToe = 9;
 
     public const int ExitTacTacToe = 10;
 
@@ -1281,7 +1288,7 @@ public class ClientToServerSignifiers
 
     public const int StopObserving = 13;
 
-    public const int SendGameRoomChatMSG = 14;
+    public const int SendGameRoomGlobalChatMSG = 14;
 
     public const int SendOnlyPlayerGameRoomChatMSG = 15;
 
@@ -1289,7 +1296,7 @@ public class ClientToServerSignifiers
 
     public const int CreateARecored = 17;
 
-    public const int AskForAllRecoreds = 18;
+    public const int AskForAllRecoredNames = 18;
 
     public const int AskForThisRecoredMatchData = 19;
 
@@ -1370,13 +1377,13 @@ public class ServerToClientSignifiers
     public const int NoRecordsNamefound = 36;
 }
 
-public class PlayerRecordManagementFileSignifiers 
+public class PlayerRecordSavingSignifiers 
 {
     public const int PlayerIdSignifier = 1;
 
     public const int PlayerRecordNameIdSignifier = 50;
 
-    public const int KEnumMatchDataIdSignifier = 51;
+    public const int MatchDataIdSignifier = 51;
 
 
 };
