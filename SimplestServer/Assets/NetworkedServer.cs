@@ -737,9 +737,9 @@ public class NetworkedServer : MonoBehaviour
                     // if  there account with a record
                     if (pa.record__names_.Count != 0)
                     {
-                        foreach (string rmn in pa.record__names_)
+                        foreach (string rn in pa.record__names_)
                         {
-                            if (csv[2] == rmn)
+                            if (csv[2] == rn)
                             {
                                 // if we a record with that name we want to break of out the foreach
                                 is_file_name_unique = false;
@@ -753,16 +753,21 @@ public class NetworkedServer : MonoBehaviour
                                 is_file_name_unique = true;
                             }
                         }
-                    }/// if there account with no record
+                    }
+                    else if (is_file_name_unique = false && does_file_exist == true) 
+                    {
+                        break;
+                    }
+                    /// if there account with no record
                     ///- allow account with no  record to crate record
                     /// but not with an existing name
-                    else if (pa.record__names_.Count == 0) 
+                    else if (pa.record__names_.Count == 0)
                     {
                         if (does_file_exist == false)
                         {
                             is_file_name_unique = true;
                         }
-          
+
                     }
                 }
             }
