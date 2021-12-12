@@ -1139,9 +1139,9 @@ public class NetworkedServer : MonoBehaviour
     /// </summary>
     public void LoadPlayerManagementFile()
     {
-        if (File.Exists(Application.dataPath + Path.DirectorySeparatorChar + "PlayerManagementFile.txt"))
+        if (File.Exists(Application.persistentDataPath + Path.DirectorySeparatorChar + "PlayerManagementFile.txt"))
         {
-            StreamReader sr = new StreamReader(Application.dataPath + Path.DirectorySeparatorChar + "PlayerManagementFile.txt");
+            StreamReader sr = new StreamReader(Application.persistentDataPath + Path.DirectorySeparatorChar + "PlayerManagementFile.txt");
             string line;
             PlayerAccount loaded_player = new PlayerAccount("TempName", "TempPass");
 
@@ -1172,7 +1172,7 @@ public class NetworkedServer : MonoBehaviour
     /// </summary>
     public void SavePlayerManagementFile()
     {
-        StreamWriter sw = new StreamWriter(Application.dataPath + Path.DirectorySeparatorChar + "PlayerManagementFile.txt");
+        StreamWriter sw = new StreamWriter(Application.persistentDataPath + Path.DirectorySeparatorChar + "PlayerManagementFile.txt");
         foreach (PlayerAccount pa in player_accounts)
         {
             sw.WriteLine(PlayerRecordSavingSignifiers.PlayerIdSignifier + "," + pa.name_ + "," + pa.password_);
@@ -1190,9 +1190,9 @@ public class NetworkedServer : MonoBehaviour
    
     public void ReadSaveMatchData(string file_name, LinkedList<MatchData> match_datas)
     {
-        if (File.Exists(Application.dataPath + Path.DirectorySeparatorChar + file_name + ".txt"))
+        if (File.Exists(Application.persistentDataPath + Path.DirectorySeparatorChar + file_name + ".txt"))
         {
-            StreamReader sr = new StreamReader(Application.dataPath + Path.DirectorySeparatorChar + file_name + ".txt");
+            StreamReader sr = new StreamReader(Application.persistentDataPath + Path.DirectorySeparatorChar + file_name + ".txt");
             string line;
             while ((line = sr.ReadLine()) != null)
             {
@@ -1215,7 +1215,7 @@ public class NetworkedServer : MonoBehaviour
     /// <param name="file_name"></param>
     public void SaveMatchData(GameRoom gr, string file_name)
     {
-        StreamWriter sw = new StreamWriter(Application.dataPath + Path.DirectorySeparatorChar + file_name + ".txt");
+        StreamWriter sw = new StreamWriter(Application.persistentDataPath + Path.DirectorySeparatorChar + file_name + ".txt");
         foreach (MatchData matchData in gr.match_data_)
         {
             sw.WriteLine(PlayerRecordSavingSignifiers.MatchDataIdSignifier + "," + matchData.player_name_ + "," + matchData.positoin_ + "," + matchData.player_symbol_);
