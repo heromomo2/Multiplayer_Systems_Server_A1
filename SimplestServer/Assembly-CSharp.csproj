@@ -60,9 +60,11 @@
     <None Include="Assets\PlayerManagementFile.txt" />
     <None Include="Assets\fug.txt" />
     <None Include="Assets\peter.txt" />
+    <None Include="Assets\fable.txt" />
     <None Include="Assets\1.txt" />
     <None Include="Assets\ok.txt" />
     <None Include="Assets\gggg.txt" />
+    <None Include="Assets\fable1.txt" />
     <None Include="Assets\gate.txt" />
     <None Include="Assets\jj.txt" />
   </ItemGroup>

@@ -570,6 +570,15 @@ public class NetworkedServer : MonoBehaviour
                         SendMessageToClient(ServerToClientSignifiers.SearchGameRoomsByUserNameComplete + "," + gr.player_two_.name_.ToString(), id);
                         gr.observer_ = new PlayerAccount("Observer", id);
                         gr.view_player_connection_id_ = gr.player_one_.connection_id_;
+
+                        // giving the observer a board from the match data on view
+
+                        int[] temp_array = new int[10];
+
+                        temp_array = MatchDataInABoardState(gr);
+
+                        SendMessageToClient(ServerToClientSignifiers.ObserverGetsMove+ ","+ temp_array[0]+ ","  + temp_array[1] + ","  + temp_array[2] + "," + temp_array[3] + ","  + temp_array[4] + "," + temp_array[5] + ","  + temp_array[6] + "," + temp_array[7] + "," + temp_array[8] + "," + temp_array[9], gr.observer_.connection_id_);
+                       
                     }
                     else
                     {
@@ -577,6 +586,14 @@ public class NetworkedServer : MonoBehaviour
                         SendMessageToClient(ServerToClientSignifiers.SearchGameRoomsByUserNameComplete + "," + gr.player_one_.name_.ToString(), id);
                         gr.observer_ = new PlayerAccount("Observer", id);
                         gr.view_player_connection_id_ = gr.player_two_.connection_id_;
+
+                        // giving the observer a board from the match data on view
+                  
+                        int[] temp_array = new int [10];
+
+                         temp_array=   MatchDataInABoardState(gr);
+
+                        SendMessageToClient(ServerToClientSignifiers.ObserverGetsMove + "," + temp_array[0] + "," + temp_array[1] + "," + temp_array[2] + "," + temp_array[3] + "," + temp_array[4] + "," + temp_array[5] + "," + temp_array[6] + "," + temp_array[7] + "," + temp_array[8] + "," + temp_array[9], gr.observer_.connection_id_);
                     }
                 }
                 else
@@ -1058,7 +1075,45 @@ public class NetworkedServer : MonoBehaviour
         }
     }
 
+    //->MatchData in a board for Observer to get on view a game
+    int[] MatchDataInABoardState  (GameRoom game_room) 
+    {
+        int[] array = new int[10] { 0, 0, 0, 0, 0, 0, 0, 0, 0 ,0};
 
+        foreach (MatchData md in game_room.match_data_)
+        {
+            // create the array
+            array[md.positoin_] = md.player_symbol_;
+
+            //  who turn it is
+            // 
+            if (game_room.view_player_connection_id_ == game_room.player_one_.connection_id_)
+            {
+                if (md.player_name_ == game_room.player_one_.name_)
+                {
+                    array[9] = 43;
+                }
+                else
+                {
+                    array[9] = 42;
+                }
+            }
+            else if (game_room.view_player_connection_id_ == game_room.player_two_.connection_id_)
+            {
+                if (md.player_name_ == game_room.player_two_.name_)
+                {
+                    array[9] = 43;
+                }
+                else
+                {
+                    array[9] = 42;
+                }
+            }
+        }
+
+        return array;
+
+    }
 
 
     #endregion
@@ -1132,11 +1187,7 @@ public class NetworkedServer : MonoBehaviour
         sw.Close();
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="file_name"></param>
-    /// <param name="match_datas"></param>
+   
     public void ReadSaveMatchData(string file_name, LinkedList<MatchData> match_datas)
     {
         if (File.Exists(Application.dataPath + Path.DirectorySeparatorChar + file_name + ".txt"))
@@ -1380,6 +1431,8 @@ public class ServerToClientSignifiers
     public const int DoneSendAllThisRecoredMatchData = 35;
 
     public const int NoRecordsNamefound = 36;
+
+  
 }
 
 public class PlayerRecordSavingSignifiers 
