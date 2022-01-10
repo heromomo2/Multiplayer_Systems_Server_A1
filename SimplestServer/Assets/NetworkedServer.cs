@@ -1091,22 +1091,22 @@ public class NetworkedServer : MonoBehaviour
             {
                 if (md.player_name_ == game_room.player_one_.name_)
                 {
-                    array[9] = 43;
+                    array[9] = 42;
                 }
                 else
                 {
-                    array[9] = 42;
+                    array[9] = 43;
                 }
             }
             else if (game_room.view_player_connection_id_ == game_room.player_two_.connection_id_)
             {
                 if (md.player_name_ == game_room.player_two_.name_)
                 {
-                    array[9] = 43;
+                    array[9] = 42;
                 }
                 else
                 {
-                    array[9] = 42;
+                    array[9] = 43;
                 }
             }
         }
